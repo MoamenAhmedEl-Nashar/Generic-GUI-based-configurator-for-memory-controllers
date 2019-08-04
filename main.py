@@ -1,23 +1,28 @@
 from tkinter import *
 from tkinter import filedialog
 import tkinter.ttk as ttk
-from lark import Lark
 from scrframe import *
+from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, Regex
+
 
 class Root(Tk):
 
     # class attributes (same for all instances of a class)
-    # put any regex in / /  
-    parameter_declaration = Lark("""
-    start:"parameter" WORD "=" NUMBER  
-    WORD:/ [a-zA-Z][a-zA-Z_0-9]* /
-    COMMENT: ("/*" /.*/ "*/") | "//" / .* /
-    IGNORED: " " | NEWLINE | COMMENT
-    %import common.NUMBER
-    %import common.NEWLINE
-    %ignore IGNORED
-    """
-    )
+    
+    parameter_declaration = "parameter" + pyparsing_common.identifier("name") + "=" + Word(nums)("value")
+    parameter_declaration.ignore(cStyleComment) 
+    parameter_declaration.ignore(Regex(r"//.*\n")) 
+
+    # parameter_declaration = Lark("""
+    # start:"parameter" WORD "=" NUMBER  
+    # WORD:/ [a-zA-Z][a-zA-Z_0-9]* /
+    # COMMENT: ("/*" /.*/ "*/") | "//" / .* /
+    # IGNORED: " " | NEWLINE | COMMENT
+    # %import common.NUMBER
+    # %import common.NEWLINE
+    # %ignore IGNORED
+    # """
+    # )
     # instance attributes (different for every instance of a class.)
     def __init__(self, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
@@ -76,11 +81,9 @@ class Root(Tk):
         self.edit_param = []
         for statement in self.source_code.split(";"):
             try:
-                token = self.parameter_declaration.parse(statement)
-                token_word = token.children[0]
-                token_number  = token.children[1]
-                name = token_word[0:]
-                value = token_number[0:]
+                token = self.parameter_declaration.parseString(statement)
+                name = token.name
+                value = token.value
                 self.parameters[name] = value
                 self.edit_param.append(st_index)
                 st_index += 1
@@ -115,11 +118,9 @@ class Root(Tk):
         
         for i in range(len(self.edit_param)):
             statement = statements[self.edit_param[i]]
-            token = self.parameter_declaration.parse(statement)
-            token_word = token.children[0]
-            token_number  = token.children[1]
-            name = token_word[0:]
-            value = token_number[0:]
+            token = self.parameter_declaration.parseString(statement)
+            name = token.name
+            value = token.value
             new_statement = statement.replace(value, self.parameters[name])
             statements[self.edit_param[i]] = new_statement
         new_code = ";".join(statements)
