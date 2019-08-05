@@ -2,14 +2,14 @@ from tkinter import *
 from tkinter import filedialog
 import tkinter.ttk as ttk
 from scrframe import *
-from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, Regex
+from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, Regex, Optional
 
 
 class Root(Tk):
 
     # class attributes (same for all instances of a class)
     
-    parameter_declaration = "parameter" + pyparsing_common.identifier("name") + "=" + Word(nums)("value")
+    parameter_declaration = "parameter" + pyparsing_common.identifier("name") + "=" + Optional("-")("neg") + Word(nums)("value")
     parameter_declaration.ignore(cStyleComment) 
     parameter_declaration.ignore(Regex(r"//.*\n")) 
 
@@ -84,6 +84,8 @@ class Root(Tk):
                 token = self.parameter_declaration.parseString(statement)
                 name = token.name
                 value = token.value
+                neg = token.neg
+                value = neg + value
                 self.parameters[name] = value
                 self.edit_param.append(st_index)
                 st_index += 1
@@ -120,7 +122,7 @@ class Root(Tk):
             statement = statements[self.edit_param[i]]
             token = self.parameter_declaration.parseString(statement)
             name = token.name
-            value = token.value
+            value = token.neg + token.value
             new_statement = statement.replace(value, self.parameters[name])
             statements[self.edit_param[i]] = new_statement
         new_code = ";".join(statements)
