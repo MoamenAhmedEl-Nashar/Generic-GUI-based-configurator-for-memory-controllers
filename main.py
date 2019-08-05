@@ -2,28 +2,21 @@ from tkinter import *
 from tkinter import filedialog
 import tkinter.ttk as ttk
 from scrframe import *
-from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, Regex
+from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, \
+Regex, ZeroOrMore, Literal
 
 
 class Root(Tk):
 
     # class attributes (same for all instances of a class)
-    
-    parameter_declaration = "parameter" + pyparsing_common.identifier("name") + "=" + pyparsing_common.signed_integer("value")
+    Ident = pyparsing_common.identifier
+    Primary = pyparsing_common.signed_integer
+    ParameterAssignment = Ident.setResultsName("name", listAllMatches=True) + "=" + Primary.setResultsName("value", listAllMatches=True)
+    parameter_declaration = Literal("parameter ") + ParameterAssignment + ZeroOrMore(("," + ParameterAssignment))
     parameter_declaration.ignore(cStyleComment) 
     parameter_declaration.ignore(Regex(r"//.*\n"))
     parameter_declaration.ignore(" ")  
-
-    # parameter_declaration = Lark("""
-    # start:"parameter" WORD "=" NUMBER  
-    # WORD:/ [a-zA-Z][a-zA-Z_0-9]* /
-    # COMMENT: ("/*" /.*/ "*/") | "//" / .* /
-    # IGNORED: " " | NEWLINE | COMMENT
-    # %import common.NUMBER
-    # %import common.NEWLINE
-    # %ignore IGNORED
-    # """
-    # )
+    
     # instance attributes (different for every instance of a class.)
     def __init__(self, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
@@ -31,7 +24,7 @@ class Root(Tk):
         self.entries = []
         self.edit_param = []
         self.file_path = ""
-
+        
         self.style = ttk.Style()
         self.style.configure("TFrame",
                         padding=9,
@@ -68,8 +61,19 @@ class Root(Tk):
         self.save_button.grid(row=0, column=1, sticky="nsew")
 
     # methods
-    def read_file(self):
     
+
+    def read_file(self):
+        # resetting
+        self.parameters.clear()
+        self.entries.clear()
+        self.edit_param.clear()
+        self.file_path = ""
+        self.parameter_declaration.setParseAction()
+        for child in self.frame_left.interior.winfo_children():
+            child.destroy()
+        self.frame_left.interior.grid_forget()
+
         self.file_path = filedialog.askopenfilename()
         
         self.file_path = self.file_path
@@ -78,23 +82,14 @@ class Root(Tk):
             self.source_code = input_file.read()
 
         # search input code to get self.parameters 
-        st_index = 0
-        self.edit_param = []
-        for statement in self.source_code.split(";"):
-            try:
-                token = self.parameter_declaration.parseString(statement)
-                name = token.name
-                value = token.value
+                
+        token = self.parameter_declaration.scanString(self.source_code)
+        for t,s,e in token:
+            l_name = t.name.asList()
+            l_value = t.value.asList()
+            for name, value in zip(l_name, l_value):
                 self.parameters[name] = value
-                self.edit_param.append(st_index)
-                st_index += 1
-                print(name, value)
-            except:
-                st_index += 1
-                continue
         
-        self.edit_param = self.edit_param
-        print(self.edit_param)
         # given a list of self.parameters, build the frame_left self.parameters input with scrollbar
         r=0
         
@@ -108,6 +103,10 @@ class Root(Tk):
             param_entry.grid(row=r, column=1)
             r+=1
         
+    def replace_param(self, s, loks, toks):
+        for i in range(3, len(toks), 4):
+            toks[i] = self.parameters[toks[i-2]]
+
     def save_file(self):
         i = 0
         for name in self.parameters.keys():
@@ -115,16 +114,10 @@ class Root(Tk):
             i+=1
         ## modify input file
         input_file = open(self.file_path, "w") 
-        statements = self.source_code.split(";")
-        
-        for i in range(len(self.edit_param)):
-            statement = statements[self.edit_param[i]]
-            token = self.parameter_declaration.parseString(statement)
-            name = token.name
-            value = token.value
-            new_statement = statement.replace(str(value), self.parameters[name])
-            statements[self.edit_param[i]] = new_statement
-        new_code = ";".join(statements)
+
+        self.parameter_declaration.setParseAction(self.replace_param)
+        new_code = self.parameter_declaration.transformString(self.source_code)
+
         input_file.write(new_code)
         input_file.close()
         
