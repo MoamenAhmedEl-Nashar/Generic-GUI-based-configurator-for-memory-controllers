@@ -11,7 +11,8 @@ class Root(Tk):
     
     parameter_declaration = "parameter" + pyparsing_common.identifier("name") + "=" + pyparsing_common.signed_integer("value")
     parameter_declaration.ignore(cStyleComment) 
-    parameter_declaration.ignore(Regex(r"//.*\n")) 
+    parameter_declaration.ignore(Regex(r"//.*\n"))
+    parameter_declaration.ignore(" ")  
 
     # parameter_declaration = Lark("""
     # start:"parameter" WORD "=" NUMBER  
