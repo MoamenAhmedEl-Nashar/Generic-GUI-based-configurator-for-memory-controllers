@@ -3,7 +3,8 @@ from tkinter import filedialog
 import tkinter.ttk as ttk
 from scrframe import *
 from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, \
-Regex, ZeroOrMore, Literal, Combine, Optional
+Regex, ZeroOrMore, Literal, replaceWith, originalTextFor, Combine, Optional, \
+Group, delimitedList, Keyword
 
 
 
@@ -15,15 +16,20 @@ class Root(Tk):
     base = Regex("'[bBoOdDhH]").setName("base")
     basedNumber = Combine( Optional( Word(nums + "_") ) + base + Word(hexnums+"xXzZ"),
                            joinString=" ", adjacent=False ).setName("basedNumber")
+
     number = ( basedNumber | \
                Regex(r"[+-]?[0-9_]+(\.[0-9_]*)?([Ee][+-]?[0-9_]+)?") \
               ).setName("numeric")
     Primary = number
-    ParameterAssignment = Ident.setResultsName("name", listAllMatches=True) + "=" + Primary.setResultsName("value", listAllMatches=True)
-    parameter_declaration = Literal("parameter ") + ParameterAssignment + ZeroOrMore(("," + ParameterAssignment))
+    ParameterAssignment = Ident.setResultsName("name", listAllMatches=True) + "=" + \
+        Primary.setResultsName("value", listAllMatches=True)
+    parameter_declaration = Keyword("parameter") + ParameterAssignment + \
+    ZeroOrMore(("," + ParameterAssignment)) 
     parameter_declaration.ignore(cStyleComment) 
     parameter_declaration.ignore(Regex(r"//.*\n"))
-    parameter_declaration.ignore(" ")  
+    parameter_declaration.ignore(" ") 
+
+     
     
     # instance attributes (different for every instance of a class.)
     def __init__(self, *args, **kwargs):
@@ -112,6 +118,7 @@ class Root(Tk):
             r+=1
         
     def replace_param(self, s, loks, toks):
+        toks[0] = "parameter "
         for i in range(3, len(toks), 4):
             toks[i] = self.parameters[toks[i-2]]
 
