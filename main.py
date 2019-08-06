@@ -21,8 +21,9 @@ class Root(Tk):
                Regex(r"[+-]?[0-9_]+(\.[0-9_]*)?([Ee][+-]?[0-9_]+)?") \
               ).setName("numeric")
     Primary = number
-    ParameterAssignment = Ident.setResultsName("name", listAllMatches=True) + "=" + \
-        Primary.setResultsName("value", listAllMatches=True)
+    Range = "[" + Primary + ":" + Primary + "]"
+    ParameterAssignment = Ident.setResultsName("name", listAllMatches=True)+ \
+    Optional(Range) + "=" + Primary.setResultsName("value", listAllMatches=True)
     parameter_declaration = Keyword("parameter") + ParameterAssignment + \
     ZeroOrMore(("," + ParameterAssignment)) 
     parameter_declaration.ignore(cStyleComment) 
