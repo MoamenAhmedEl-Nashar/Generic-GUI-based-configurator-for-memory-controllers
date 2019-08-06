@@ -3,14 +3,22 @@ from tkinter import filedialog
 import tkinter.ttk as ttk
 from scrframe import *
 from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, \
-Regex, ZeroOrMore, Literal
+Regex, ZeroOrMore, Literal, Combine, Optional
+
 
 
 class Root(Tk):
 
     # class attributes (same for all instances of a class)
     Ident = pyparsing_common.identifier
-    Primary = pyparsing_common.signed_integer
+    hexnums = nums + "abcdefABCDEF" + "_?"
+    base = Regex("'[bBoOdDhH]").setName("base")
+    basedNumber = Combine( Optional( Word(nums + "_") ) + base + Word(hexnums+"xXzZ"),
+                           joinString=" ", adjacent=False ).setName("basedNumber")
+    number = ( basedNumber | \
+               Regex(r"[+-]?[0-9_]+(\.[0-9_]*)?([Ee][+-]?[0-9_]+)?") \
+              ).setName("numeric")
+    Primary = number
     ParameterAssignment = Ident.setResultsName("name", listAllMatches=True) + "=" + Primary.setResultsName("value", listAllMatches=True)
     parameter_declaration = Literal("parameter ") + ParameterAssignment + ZeroOrMore(("," + ParameterAssignment))
     parameter_declaration.ignore(cStyleComment) 
