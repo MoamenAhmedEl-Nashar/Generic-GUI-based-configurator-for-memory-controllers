@@ -18,7 +18,9 @@ from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, \
 class Root(ThemedTk):
     """The main class of the program frontend and backend"""
     # class attributes (same for all instances of a class)
-    Ident = pyparsing_common.identifier
+
+    # general
+    identifier = pyparsing_common.identifier
     hexnums = nums + "abcdefABCDEF" + "_?"
     base = Regex("'[bBoOdDhH]")
     basedNumber = Combine(Optional(Word(nums + "_")) +
@@ -27,7 +29,8 @@ class Root(ThemedTk):
         r"[+-]?[0-9_]+(\.[0-9_]*)?([Ee][+-]?[0-9_]+)?"))
     Primary = number
     Range = "[" + Primary + ":" + Primary + "]"
-    ParameterAssignment = Ident.setResultsName("name", listAllMatches=True) + \
+    # parameter
+    ParameterAssignment = identifier.setResultsName("name", listAllMatches=True) + \
         Optional(Range) + "=" + \
         Primary.setResultsName("value", listAllMatches=True)
     parameter_declaration = Keyword("parameter") + ParameterAssignment + \
@@ -35,7 +38,19 @@ class Root(ThemedTk):
     parameter_declaration.ignore(cStyleComment)
     parameter_declaration.ignore(Regex(r"//.*\n"))
     parameter_declaration.ignore(" ")
+    # module instance
+    namedPortConnection = "." + identifier + "(" + identifier + ")" # search for the second identifier inside ()
+    # in parsing test benches: we don't care about the parameter in the design file of the module definition 
+    modulePortConnection = identifier
 
+    instanceArgs = "(" + (delimitedList(namedPortConnection) | delimitedList(modulePortConnection)) + ")"
+    # parameterValueAssignment = Literal("#") + instanceArgs("y")
+
+    moduleInstance = identifier + instanceArgs
+    moduleInstantiation = identifier + Optional(Literal("#") + "(" + (delimitedList("." + identifier + "(" + identifier.setResultsName("name", listAllMatches=True) + ")") | delimitedList(identifier)) + ")") + delimitedList(moduleInstance) + ";"
+    moduleInstantiation.ignore(cStyleComment)
+    moduleInstantiation.ignore(Regex(r"//.*\n"))
+    moduleInstantiation.ignore(" ")
     # instance attributes (different for every instance of a class.)
     def __init__(self, *args, **kwargs):
         ThemedTk.__init__(self, *args, **kwargs, theme="arc")
@@ -43,6 +58,7 @@ class Root(ThemedTk):
         self.entries = []
         self.edit_param = []
         self.file_path = ""
+        self.module_parameter_names = []
 
         self.style = ttk.Style()
         self.style.configure("TFrame", padding=9,
@@ -72,6 +88,7 @@ class Root(ThemedTk):
         self.save_button.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
     # methods
+    
 
     def read_file(self):
         """read the input file and parse its contents"""
@@ -79,6 +96,7 @@ class Root(ThemedTk):
         # resetting
         self.parameters.clear()
         self.entries.clear()
+        self.module_parameter_names.clear()
         self.edit_param.clear()
         self.file_path = ""
         self.parameter_declaration.setParseAction()
@@ -102,18 +120,25 @@ class Root(ThemedTk):
             for name, value in zip(l_name, l_value):
                 self.parameters[name] = value
 
+        # scan for module instance
+
+        module_token = self.moduleInstantiation.scanString(self.source_code)
+        for t, s, e in module_token:
+            self.module_parameter_names = t.name.asList()
+
         # given a list of parameters, build the frame_left parameters
         r = 0
         for name, value in self.parameters.items():
-            param_label = ttk.Label(
-                self.frame_left.interior, text=name, font=("Courier", 20))
-            param_entry = ttk.Entry(self.frame_left.interior)
-            param_entry.insert(END, value)
+            if name in self.module_parameter_names:
+                param_label = ttk.Label(
+                    self.frame_left.interior, text=name, font=("Courier", 20))
+                param_entry = ttk.Entry(self.frame_left.interior)
+                param_entry.insert(END, value)
 
-            self.entries.append(param_entry)
-            param_label.grid(row=r, column=0, padx=5, pady=5)
-            param_entry.grid(row=r, column=1, padx=5, pady=5)
-            r += 1
+                self.entries.append(param_entry)
+                param_label.grid(row=r, column=0, padx=5, pady=5)
+                param_entry.grid(row=r, column=1, padx=5, pady=5)
+                r += 1
 
     def replace_param(self, s, loks, toks):
         """replace values of parameters with the new one"""
@@ -127,8 +152,9 @@ class Root(ThemedTk):
 
         i = 0
         for name in self.parameters.keys():
-            self.parameters[name] = self.entries[i].get()
-            i += 1
+            if name in self.module_parameter_names:
+                self.parameters[name] = self.entries[i].get()
+                i += 1
         # modify input file
         input_file = open(self.file_path, "w")
 

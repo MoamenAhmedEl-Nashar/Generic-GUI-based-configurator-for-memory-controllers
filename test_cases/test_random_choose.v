@@ -6,7 +6,7 @@ test bench for testing random choose module
 */
 module test ;
 /*j*/ 
- parameter WIDTH1 = 10; /*h*/
+ parameter WIDTH = 12 , x = 4; /*h*/
  /*h*/ 
  parameter WIDTH2 = 2;
  parameter WIDTH3 = 31; // modify if ...
@@ -19,14 +19,14 @@ module test ;
  parameter WIDTH8 = 31;
  parameter WIDTH9 = 31;
  parameter WIDTH10 = 31;
- parameter WIDTH11= 31;
- parameter WIDTH12= 31;
- parameter WIDTH13= 31;
- parameter WIDTH14= 31;
- parameter WIDTH15= 31;
- parameter WIDTH16= 31;
- parameter WIDTH17= 31;
- parameter WIDTH18= 31;
+ parameter WIDTH11 = 31;
+ parameter WIDTH12 = 31;
+ parameter WIDTH13 = 31;
+ parameter WIDTH14 = 31;
+ parameter WIDTH15 = 31;
+ parameter WIDTH16 = 31;
+ parameter WIDTH17 = 31;
+ parameter WIDTH18 = 31;
  parameter WIDTH19 = 31;
  parameter WIDTH20 = 31;
  parameter WIDTH21 = 31;

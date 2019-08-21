@@ -1,18 +1,21 @@
-from tkinter import * 
-from tkinter.ttk import *
+from tkinter import *
+import tkinter.ttk as ttk
+
 
 class VerticalScrolledFrame(Frame):
 
     def __init__(self, parent, *args, **kw):
-        Frame.__init__(self, parent, *args, **kw)            
+        self.style = ttk.Style()
+        self.style.configure("TFrame", padding=9,
+                             relief="flat", bg="LightBlue4", fg="gray15")
+        ttk.Frame.__init__(self, parent, *args, **kw)
 
         # create a canvas object and a vertical scrollbar for scrolling it
-        vscrollbar = Scrollbar(self, orient=VERTICAL)
-        vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
-        canvas = Canvas(self, bd=0, highlightthickness=0,
-                        yscrollcommand=vscrollbar.set)
+        vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
+        canvas = Canvas(self, yscrollcommand=vscrollbar.set, height=400)
         canvas.configure(scrollregion=canvas.bbox("all"))
-        canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
+        canvas.grid(row=0, column=0, sticky="nsew")
+        vscrollbar.grid(row=0, column=1, sticky="nsew")
         vscrollbar.config(command=canvas.yview)
 
         # reset the view
@@ -20,7 +23,8 @@ class VerticalScrolledFrame(Frame):
         canvas.yview_moveto(0)
 
         # create a frame inside the canvas which will be scrolled with it
-        self.interior = interior = Frame(canvas)
+
+        self.interior = interior = ttk.Frame(canvas)
         interior_id = canvas.create_window(0, 0, window=interior,
                                            anchor=NW)
 
@@ -40,5 +44,3 @@ class VerticalScrolledFrame(Frame):
                 # update the inner frame's width to fill the canvas
                 canvas.itemconfigure(interior_id, width=canvas.winfo_width())
         canvas.bind('<Configure>', _configure_canvas)
-
-
