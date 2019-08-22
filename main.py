@@ -65,6 +65,8 @@ class Root(ThemedTk):
                              relief="flat", bg="LightBlue4", fg="gray15")
         self.style.configure("TButton", padding=9,
                              relief="raised", font=("Helvetica ", 20))
+        self.style.configure("TRadiobutton", padding=9,
+                             relief="raised", font=("Helvetica ", 15))
         self.title('Generic GUI-based configurator')
         # w, h = self.winfo_screenwidth(), self.winfo_screenheight()
         # self.geometry("%dx%d+0+0" % (w, h))
@@ -78,6 +80,11 @@ class Root(ThemedTk):
         self.save_button = ttk.Button(
             self.frame_bottom, text="save", command=lambda: self.save_file())
 
+        # radio buttons (desgin or test file)
+        self.select_design_or_test = IntVar()
+        self.select_design_or_test.set(2) # default is test
+        self.design_radio = ttk.Radiobutton(self.frame_bottom, text = "design file", variable=self.select_design_or_test, value = 1)
+        self.test_radio = ttk.Radiobutton(self.frame_bottom, text = "test file", variable=self.select_design_or_test, value = 2)
         # grid
         self.frame_left.grid(row=0, column=0, sticky="nsew")
         self.frame_right.grid(row=0, column=1, sticky="nsew")
@@ -86,6 +93,10 @@ class Root(ThemedTk):
         # frame bottom
         self.upload_button.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.save_button.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+
+        # radio buttons
+        self.test_radio.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
+        self.design_radio.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)
 
     # methods
     
@@ -120,16 +131,16 @@ class Root(ThemedTk):
             for name, value in zip(l_name, l_value):
                 self.parameters[name] = value
 
-        # scan for module instance
-
-        module_token = self.moduleInstantiation.scanString(self.source_code)
-        for t, s, e in module_token:
-            self.module_parameter_names = t.name.asList()
+        # scan for module instance only in test files
+        if self.select_design_or_test.get() == 2: # test file
+            module_token = self.moduleInstantiation.scanString(self.source_code)
+            for t, s, e in module_token:
+                self.module_parameter_names = t.name.asList()
 
         # given a list of parameters, build the frame_left parameters
         r = 0
         for name, value in self.parameters.items():
-            if name in self.module_parameter_names:
+            if name in self.module_parameter_names or self.select_design_or_test.get() == 1: # design file
                 param_label = ttk.Label(
                     self.frame_left.interior, text=name, font=("Courier", 20))
                 param_entry = ttk.Entry(self.frame_left.interior)
@@ -152,7 +163,7 @@ class Root(ThemedTk):
 
         i = 0
         for name in self.parameters.keys():
-            if name in self.module_parameter_names:
+            if name in self.module_parameter_names or self.select_design_or_test.get() == 1: # design file:
                 self.parameters[name] = self.entries[i].get()
                 i += 1
         # modify input file
