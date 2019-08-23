@@ -14,8 +14,10 @@ class VerticalScrolledFrame(Frame):
         vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
         canvas = Canvas(self, yscrollcommand=vscrollbar.set, height=400)
         canvas.configure(scrollregion=canvas.bbox("all"))
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
         canvas.grid(row=0, column=0, sticky="nsew")
-        vscrollbar.grid(row=0, column=1, sticky="nsew")
+        vscrollbar.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         vscrollbar.config(command=canvas.yview)
 
         # reset the view

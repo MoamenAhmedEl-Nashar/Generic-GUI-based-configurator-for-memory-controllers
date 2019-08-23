@@ -61,10 +61,11 @@ class Root(ThemedTk):
         self.module_parameter_names = []
 
         self.style = ttk.Style()
-        self.style.configure("TFrame", padding=9,
-                             relief="flat", bg="LightBlue4", fg="gray15")
+        self.style.configure("TFrame", padding=9, relief="raised")
         self.style.configure("TButton", padding=9,
                              relief="raised", font=("Helvetica ", 20))
+        self.style.configure("TEntry", padding=9,
+                             relief="raised", font=("Helvetica ", 15))                
         self.style.configure("TRadiobutton", padding=9,
                              relief="raised", font=("Helvetica ", 15))
         self.title('Generic GUI-based configurator')
@@ -85,18 +86,25 @@ class Root(ThemedTk):
         self.select_design_or_test.set(2) # default is test
         self.design_radio = ttk.Radiobutton(self.frame_bottom, text = "design file", variable=self.select_design_or_test, value = 1)
         self.test_radio = ttk.Radiobutton(self.frame_bottom, text = "test file", variable=self.select_design_or_test, value = 2)
+        self.info_label = ttk.Label(self.frame_bottom, text="Please select mode before uploading.", font=(10))
         # grid
+        self.columnconfigure(0, weight=1) # to make widgets propagate (fit) its parent
+        self.rowconfigure(0, weight=1) # to make widgets propagate (fit) its parent
+        self.frame_left.interior.columnconfigure(0, weight=1) # to make widgets propagate (fit) in its parent
+        self.frame_left.interior.rowconfigure(0, weight=1) # to make widgets propagate (fit) in its parent
         self.frame_left.grid(row=0, column=0, sticky="nsew")
         self.frame_right.grid(row=0, column=1, sticky="nsew")
-        self.frame_bottom.grid(row=1, column=0)
+        self.frame_bottom.grid(row=1, column=0, padx=5, pady=5)
+
 
         # frame bottom
         self.upload_button.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.save_button.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
         # radio buttons
-        self.test_radio.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
-        self.design_radio.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)
+        self.info_label.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
+        self.test_radio.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)
+        self.design_radio.grid(row=3, column=0, sticky="nsew", padx=5, pady=5)
 
     # methods
     
@@ -143,7 +151,7 @@ class Root(ThemedTk):
             if name in self.module_parameter_names or self.select_design_or_test.get() == 1: # design file
                 param_label = ttk.Label(
                     self.frame_left.interior, text=name, font=("Courier", 20))
-                param_entry = ttk.Entry(self.frame_left.interior)
+                param_entry = ttk.Entry(self.frame_left.interior, font=("Helvetica ", 15))
                 param_entry.insert(END, value)
 
                 self.entries.append(param_entry)
