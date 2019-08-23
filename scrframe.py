@@ -30,6 +30,8 @@ class VerticalScrolledFrame(Frame):
         interior_id = canvas.create_window(0, 0, window=interior,
                                            anchor=NW)
 
+
+                                    
         # track changes to the canvas and frame width and sync them,
         # also updating the scrollbar
         def _configure_interior(event):
@@ -41,8 +43,23 @@ class VerticalScrolledFrame(Frame):
                 canvas.config(width=interior.winfo_reqwidth())
         interior.bind('<Configure>', _configure_interior)
 
+        def _bound_to_mousewheel(event):
+            interior.bind_all("<MouseWheel>", _on_mousewheel)   
+        
+        def _unbound_to_mousewheel( event):
+            interior.unbind_all("<MouseWheel>") 
+
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+        interior.bind('<Enter>', _bound_to_mousewheel)
+        interior.bind('<Leave>', _unbound_to_mousewheel)
+        interior.bind('<MouseWheel>', _on_mousewheel)
+
         def _configure_canvas(event):
             if interior.winfo_reqwidth() != canvas.winfo_width():
                 # update the inner frame's width to fill the canvas
                 canvas.itemconfigure(interior_id, width=canvas.winfo_width())
         canvas.bind('<Configure>', _configure_canvas)
+        
+
