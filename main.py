@@ -51,18 +51,25 @@ class Root(ThemedTk):
     moduleInstantiation.ignore(cStyleComment)
     moduleInstantiation.ignore(Regex(r"//.*\n"))
     moduleInstantiation.ignore(" ")
-    ## ifdef
+    ## `ifdef
     ifdef = Forward()
     stmt = SkipTo(Keyword("`else"))|SkipTo(Keyword("`endif"))
-    ifdef << Group(Keyword("`ifdef") + identifier + (ifdef|stmt.suppress()) + Optional(
-        Keyword("`else") + (ifdef|stmt.suppress())) + Keyword("`endif"))
+    ifdef << Keyword("`ifdef") + identifier.setResultsName("def_name", listAllMatches=True) + (ifdef|stmt.suppress()) + Optional(
+        Keyword("`else") + (ifdef|stmt.suppress())) + Keyword("`endif")
     ifdef.ignore(cStyleComment)
     ifdef.ignore(Regex(r"//.*\n"))
     ifdef.ignore(" ")
+    ## `define
+    define = Keyword("`define") + identifier.setResultsName("def_name", listAllMatches=True)
+    define.ignore(ifdef)
+    define.ignore(cStyleComment)
+    define.ignore(Regex(r"//.*\n"))
+    define.ignore(" ")
     # instance attributes (different for every instance of a class.)
     def __init__(self, *args, **kwargs):
         ThemedTk.__init__(self, *args, **kwargs, theme="arc")
         self.parameters = {}
+        self.defines = {}
         self.entries = []
         self.edit_param = []
         self.file_path = ""
@@ -81,7 +88,7 @@ class Root(ThemedTk):
         # self.geometry("%dx%d+0+0" % (w, h))
 
         self.frame_left = VerticalScrolledFrame(self, borderwidth=4)
-        self.frame_right = ttk.Frame(self, borderwidth=4)
+        self.frame_right = VerticalScrolledFrame(self, borderwidth=4)
         self.frame_bottom = ttk.Frame(self, borderwidth=4)
 
         self.upload_button = ttk.Button(
@@ -100,8 +107,10 @@ class Root(ThemedTk):
         self.rowconfigure(0, weight=1) # to make widgets propagate (fit) its parent
         self.frame_left.interior.columnconfigure(0, weight=1) # to make widgets propagate (fit) in its parent
         self.frame_left.interior.rowconfigure(0, weight=1) # to make widgets propagate (fit) in its parent
-        self.frame_left.grid(row=0, column=0, sticky="nsew")
-        self.frame_right.grid(row=0, column=1, sticky="nsew")
+        self.frame_left.grid(row=0, column=1, sticky="nsew")
+        self.frame_right.interior.columnconfigure(0, weight=1) # to make widgets propagate (fit) in its parent
+        self.frame_right.interior.rowconfigure(0, weight=1) # to make widgets propagate (fit) in its parent
+        self.frame_right.grid(row=0, column=0, sticky="nsew")
         self.frame_bottom.grid(row=1, column=0, padx=5, pady=5)
 
 
@@ -122,6 +131,7 @@ class Root(ThemedTk):
 
         ## resetting
         self.parameters.clear()
+        self.defines.clear()
         self.entries.clear()
         self.module_parameter_names.clear()
         self.edit_param.clear()
@@ -139,9 +149,24 @@ class Root(ThemedTk):
             self.source_code = input_file.read()
         
         ## search input code to get `ifdefs
-        def_tree = self.ifdef.scanString(self.source_code) 
+        def_tree = self.ifdef.scanString(self.source_code)  
         for t, s, e in def_tree:
-            print(t)   
+            d = t.def_name[0]
+            self.defines[d] = 0
+        ## Knowing defines is defined or not
+        define_tokens = self.define.scanString(self.source_code)
+        for t, s, e in define_tokens:
+            self.defines[t.def_name[0]] = 1 
+        ## given a list of defines, build the frame_right defines
+        r = 0
+        for name, value in self.defines.items():
+            define_label = ttk.Label(
+                self.frame_right.interior, text=name, font=("Courier", 20))
+            define_entry = ttk.Entry(self.frame_right.interior, font=("Helvetica ", 15))
+            define_entry.insert(END, value)
+            define_label.grid(row=r, column=0, padx=5, pady=5)
+            define_entry.grid(row=r, column=1, padx=5, pady=5)
+            r += 1
         ## search input code to get parameters
 
         token = self.parameter_declaration.scanString(self.source_code)
