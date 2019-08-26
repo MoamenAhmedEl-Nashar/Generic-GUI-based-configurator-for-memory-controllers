@@ -11,7 +11,7 @@ from ttkthemes import ThemedTk  # themes
 from scrframe import *  # scroll frame class
 from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, \
     Regex, ZeroOrMore, Literal, replaceWith, originalTextFor, Combine, \
-    Optional, Group, delimitedList, Keyword
+    Optional, Group, delimitedList, Keyword, Forward, SkipTo
 # import pyparsing to parse verilog grammar
 
 
@@ -19,7 +19,7 @@ class Root(ThemedTk):
     """The main class of the program frontend and backend"""
     # class attributes (same for all instances of a class)
 
-    # general
+    ## general
     identifier = pyparsing_common.identifier
     hexnums = nums + "abcdefABCDEF" + "_?"
     base = Regex("'[bBoOdDhH]")
@@ -29,7 +29,7 @@ class Root(ThemedTk):
         r"[+-]?[0-9_]+(\.[0-9_]*)?([Ee][+-]?[0-9_]+)?"))
     Primary = number
     Range = "[" + Primary + ":" + Primary + "]"
-    # parameter
+    ## parameter
     ParameterAssignment = identifier.setResultsName("name", listAllMatches=True) + \
         Optional(Range) + "=" + \
         Primary.setResultsName("value", listAllMatches=True)
@@ -38,7 +38,7 @@ class Root(ThemedTk):
     parameter_declaration.ignore(cStyleComment)
     parameter_declaration.ignore(Regex(r"//.*\n"))
     parameter_declaration.ignore(" ")
-    # module instance
+    ## module instance
     namedPortConnection = "." + identifier + "(" + identifier + ")" # search for the second identifier inside ()
     # in parsing test benches: we don't care about the parameter in the design file of the module definition 
     modulePortConnection = identifier
@@ -51,6 +51,14 @@ class Root(ThemedTk):
     moduleInstantiation.ignore(cStyleComment)
     moduleInstantiation.ignore(Regex(r"//.*\n"))
     moduleInstantiation.ignore(" ")
+    ## ifdef
+    ifdef = Forward()
+    stmt = SkipTo(Keyword("`else"))|SkipTo(Keyword("`endif"))
+    ifdef << Group(Keyword("`ifdef") + identifier + (ifdef|stmt.suppress()) + Optional(
+        Keyword("`else") + (ifdef|stmt.suppress())) + Keyword("`endif"))
+    ifdef.ignore(cStyleComment)
+    ifdef.ignore(Regex(r"//.*\n"))
+    ifdef.ignore(" ")
     # instance attributes (different for every instance of a class.)
     def __init__(self, *args, **kwargs):
         ThemedTk.__init__(self, *args, **kwargs, theme="arc")
@@ -112,7 +120,7 @@ class Root(ThemedTk):
     def read_file(self):
         """read the input file and parse its contents"""
 
-        # resetting
+        ## resetting
         self.parameters.clear()
         self.entries.clear()
         self.module_parameter_names.clear()
@@ -126,11 +134,15 @@ class Root(ThemedTk):
         self.file_path = filedialog.askopenfilename()
 
         self.file_path = self.file_path
-        # input sv file reading
+        ## input sv file reading
         with open(self.file_path, "r") as input_file:
             self.source_code = input_file.read()
-
-        # search input code to get parameters
+        
+        ## search input code to get `ifdefs
+        def_tree = self.ifdef.scanString(self.source_code) 
+        for t, s, e in def_tree:
+            print(t)   
+        ## search input code to get parameters
 
         token = self.parameter_declaration.scanString(self.source_code)
         for t, s, e in token:
@@ -139,13 +151,13 @@ class Root(ThemedTk):
             for name, value in zip(l_name, l_value):
                 self.parameters[name] = value
 
-        # scan for module instance only in test files
+        ## scan for module instance only in test files
         if self.select_design_or_test.get() == 2: # test file
             module_token = self.moduleInstantiation.scanString(self.source_code)
             for t, s, e in module_token:
                 self.module_parameter_names = t.name.asList()
 
-        # given a list of parameters, build the frame_left parameters
+        ## given a list of parameters, build the frame_left parameters
         r = 0
         for name, value in self.parameters.items():
             if name in self.module_parameter_names or self.select_design_or_test.get() == 1: # design file
