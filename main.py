@@ -70,7 +70,8 @@ class Root(ThemedTk):
         ThemedTk.__init__(self, *args, **kwargs, theme="arc")
         self.parameters = {}
         self.defines = {}
-        self.entries = []
+        self.param_entries = []
+        self.define_entries = []
         self.edit_param = []
         self.file_path = ""
         self.module_parameter_names = []
@@ -132,7 +133,8 @@ class Root(ThemedTk):
         ## resetting
         self.parameters.clear()
         self.defines.clear()
-        self.entries.clear()
+        self.param_entries.clear()
+        self.define_entries.clear()
         self.module_parameter_names.clear()
         self.edit_param.clear()
         self.file_path = ""
@@ -164,6 +166,7 @@ class Root(ThemedTk):
                 self.frame_right.interior, text=name, font=("Courier", 20))
             define_entry = ttk.Entry(self.frame_right.interior, font=("Helvetica ", 15))
             define_entry.insert(END, value)
+            self.define_entries.append(define_entry)
             define_label.grid(row=r, column=0, padx=5, pady=5)
             define_entry.grid(row=r, column=1, padx=5, pady=5)
             r += 1
@@ -191,7 +194,7 @@ class Root(ThemedTk):
                 param_entry = ttk.Entry(self.frame_left.interior, font=("Helvetica ", 15))
                 param_entry.insert(END, value)
 
-                self.entries.append(param_entry)
+                self.param_entries.append(param_entry)
                 param_label.grid(row=r, column=0, padx=5, pady=5)
                 param_entry.grid(row=r, column=1, padx=5, pady=5)
                 r += 1
@@ -203,20 +206,76 @@ class Root(ThemedTk):
             toks[i] = self.parameters[toks[i-2]]
         return " ".join(toks)  # to put spaces between tokens
 
+    def undefine_it(self, s, loks, toks):
+        """remove `define"""
+        toks = ""
+        return toks  
+
+    def define_it(self, toks, name):
+        """remove `define"""
+        s = "\n `define " + name + "\n"
+        toks.append(s)
+        return " ".join(toks)
+
     def save_file(self):
         """save the new file back after parsing and replacing"""
 
+        ## save the new defines values
+        i = 0
+        for name in self.defines.keys():
+            self.defines[name] = self.define_entries[i].get()
+            i += 1
+        print(self.defines)
+        ## save the new parameters values
         i = 0
         for name in self.parameters.keys():
             if name in self.module_parameter_names or self.select_design_or_test.get() == 1: # design file:
-                self.parameters[name] = self.entries[i].get()
+                self.parameters[name] = self.param_entries[i].get()
                 i += 1
+            
         # modify input file
         input_file = open(self.file_path, "w")
+        ## modify defines
+        new_code = self.source_code
+        for name, value in self.defines.items():
+            define_specific = Keyword("`define") + Keyword(name).setResultsName("def_name", listAllMatches=True)
+            define_specific.ignore(self.ifdef)
+            define_specific.ignore(cStyleComment)
+            define_specific.ignore(Regex(r"//.*\n"))
+            define_specific.ignore(" ")
+            define_specific_token = define_specific.scanString(new_code)
+            try:
+                next(define_specific_token) # check the generator is empty or not
+                # defined
+                if value == '0': # must be not defined
+                    define_specific.setParseAction(self.undefine_it)
+                    new_code = define_specific.transformString(new_code)
+            except:
+            # not defined
+                if value == '1': # must be defined
+                    # if the verilog file has at least one define statement
+                    # - put the new define statement after it
+                    dummy_define = Keyword("`define") + self.identifier
+                    dummy_define.ignore(self.ifdef)
+                    dummy_define.ignore(cStyleComment)
+                    dummy_define.ignore(Regex(r"//.*\n"))
+                    dummy_define.ignore(" ")
+                    dummy_define.setParseAction(lambda toks: self.define_it(toks, name))
+                    define_tokens = dummy_define.scanString(new_code, maxMatches=1)
+                    try:
+                        next(define_tokens) # check the generator is empty or not
+                        new_code = dummy_define.transformString(new_code)
 
+                    except:
+                    # if there are no define statements
+                    # - put the new define statement at first line
+                        s = "\n `define " + name + "\n"
+                        new_code = s + new_code
+        
+        ## modify parameters
         self.parameter_declaration.setParseAction(self.replace_param)
-        new_code = self.parameter_declaration.transformString(self.source_code)
-
+        new_code = self.parameter_declaration.transformString(new_code)
+        
         input_file.write(new_code)
         input_file.close()
 
