@@ -1,27 +1,18 @@
-
- 
 `include "params.v"
 
 module dut (
-  input enable,
-  input [`NUMADDR-1:0] soc_addr,
-  input vdd,
+  parameter enable = 2,
+
   `ifdef USE_WREAL
-  input real vddc,
+  parameter real = 2,
   `else
-  input vddc,
+  parameter vddc = 2,
   `endif
   input vddf,
 
   output [31:0] port_a,
   output [15:0] port_b
 );
-
-  `ifdef USE_WREAL
-  wire real vdd;
-  wreal vddf;
-  `endif
-
   always @(*) begin
     // To expose a bug extracting pins when wreal support was added
   end

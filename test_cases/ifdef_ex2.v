@@ -1,5 +1,7 @@
+
+ `define ITEM2
 `timescale 1ns/10ps
-`define ITEM1
+
 
 `ifdef ITEM1
 `include "tb1.v"

@@ -11,7 +11,7 @@ from ttkthemes import ThemedTk  # themes
 from scrframe import *  # scroll frame class
 from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, \
     Regex, ZeroOrMore, Literal, replaceWith, originalTextFor, Combine, \
-    Optional, Group, delimitedList, Keyword, Forward, SkipTo
+    Optional, Group, delimitedList, Keyword, Forward, SkipTo, PrecededBy
 # import pyparsing to parse verilog grammar
 
 
@@ -91,11 +91,19 @@ class Root(ThemedTk):
         self.frame_left = VerticalScrolledFrame(self, borderwidth=4)
         self.frame_right = VerticalScrolledFrame(self, borderwidth=4)
         self.frame_bottom = ttk.Frame(self, borderwidth=4)
+        self.frame_mid = ttk.Frame(self, borderwidth=4)
+        self.frame_top = ttk.Frame(self, borderwidth=4)
 
+        # labels
+        self.defines_label = ttk.Label(self.frame_top, text="defines section", font=(10))
+        self.parameters_label = ttk.Label(self.frame_top, text="parameters section", font=(10))
+        # main buttons
         self.upload_button = ttk.Button(
             self.frame_bottom, text="upload", command=lambda: self.read_file())
         self.save_button = ttk.Button(
             self.frame_bottom, text="save", command=lambda: self.save_file())
+        self.update_defines_button = ttk.Button(
+            self.frame_mid, text="update ->", command=lambda: self.save_defines())
 
         # radio buttons (desgin or test file)
         self.select_design_or_test = IntVar()
@@ -103,17 +111,26 @@ class Root(ThemedTk):
         self.design_radio = ttk.Radiobutton(self.frame_bottom, text = "design file", variable=self.select_design_or_test, value = 1)
         self.test_radio = ttk.Radiobutton(self.frame_bottom, text = "test file", variable=self.select_design_or_test, value = 2)
         self.info_label = ttk.Label(self.frame_bottom, text="Please select mode before uploading.", font=(10))
+
         # grid
         self.columnconfigure(0, weight=1) # to make widgets propagate (fit) its parent
         self.rowconfigure(0, weight=1) # to make widgets propagate (fit) its parent
         self.frame_left.interior.columnconfigure(0, weight=1) # to make widgets propagate (fit) in its parent
         self.frame_left.interior.rowconfigure(0, weight=1) # to make widgets propagate (fit) in its parent
-        self.frame_left.grid(row=0, column=1, sticky="nsew")
+        self.frame_left.grid(row=1, column=2, sticky="nsew")
         self.frame_right.interior.columnconfigure(0, weight=1) # to make widgets propagate (fit) in its parent
         self.frame_right.interior.rowconfigure(0, weight=1) # to make widgets propagate (fit) in its parent
-        self.frame_right.grid(row=0, column=0, sticky="nsew")
-        self.frame_bottom.grid(row=1, column=0, padx=5, pady=5)
+        self.frame_right.grid(row=1, column=0, sticky="nsew")
+        self.frame_bottom.grid(row=2, column=0, padx=5, pady=5)
+        self.frame_mid.grid(row=1, column=1, padx=5, pady=5)
+        self.frame_top.grid(row=0, column=0, padx=5, pady=5)
 
+        # frame_top
+        self.parameters_label.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+        self.defines_label.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+
+        #frame_mid
+        self.update_defines_button.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
         # frame bottom
         self.upload_button.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
@@ -128,7 +145,8 @@ class Root(ThemedTk):
     
 
     def read_file(self):
-        """read the input file and parse its contents"""
+        """read the input file and parse its contents,
+           called on clicking upload button."""
 
         ## resetting
         self.parameters.clear()
@@ -170,8 +188,45 @@ class Root(ThemedTk):
             define_label.grid(row=r, column=0, padx=5, pady=5)
             define_entry.grid(row=r, column=1, padx=5, pady=5)
             r += 1
-        ## search input code to get parameters
+        
+    def show_parameters(self):
+        """search input code to get parameters"""
 
+        ## resetting
+        self.parameters.clear()
+        self.param_entries.clear()
+        self.module_parameter_names.clear()
+        self.edit_param.clear()
+        for child in self.frame_left.interior.winfo_children():
+            child.destroy()
+        self.frame_left.interior.grid_forget()
+        self.parameter_declaration = Keyword("parameter") + self.ParameterAssignment + \
+            ZeroOrMore(("," + self.ParameterAssignment))
+        self.parameter_declaration.ignore(cStyleComment)
+        self.parameter_declaration.ignore(Regex(r"//.*\n"))
+        self.parameter_declaration.ignore(" ")
+
+        ## modifying parameter_declaration according to defines
+        ifdef_non_rec = Keyword("`ifdef") + self.identifier("def_name") + self.stmt("ifstmt") + Optional(
+            Keyword("`else") + self.stmt("elsestmt")) + Keyword("`endif")
+        ifdef_non_rec.ignore(cStyleComment)
+        ifdef_non_rec.ignore(Regex(r"//.*\n"))
+        ifdef_non_rec.ignore(" ") 
+        specific_token = ifdef_non_rec.scanString(self.source_code)
+        for t, s, e in specific_token:
+            if self.defines[t.def_name] == "1": # defined
+                temp_parse = Keyword("`ifdef") + Keyword(t.def_name)
+                temp_parse2 = PrecededBy(t.ifstmt) + Keyword("`endif")
+                temp_parse3 = Keyword("`else") + Keyword(t.elsestmt) + Keyword("`endif")
+            elif self.defines[t.def_name] == "0": # not defined
+                temp_parse = Keyword("`ifdef") + Keyword(t.def_name) + Keyword(t.ifstmt)
+                temp_parse2 = PrecededBy(t.elsestmt) + Keyword("`endif")
+                temp_parse3 = PrecededBy(t.ifstmt) + Keyword("`else")
+            self.parameter_declaration.ignore(temp_parse)
+            self.parameter_declaration.ignore(temp_parse2)
+            self.parameter_declaration.ignore(temp_parse3)
+
+        ## parse input file to get parameters
         token = self.parameter_declaration.scanString(self.source_code)
         for t, s, e in token:
             l_name = t.name.asList()
@@ -217,15 +272,21 @@ class Root(ThemedTk):
         toks.append(s)
         return " ".join(toks)
 
-    def save_file(self):
-        """save the new file back after parsing and replacing"""
-
+    def save_defines(self):
+        """update defines dictionary"""
         ## save the new defines values
         i = 0
         for name in self.defines.keys():
             self.defines[name] = self.define_entries[i].get()
             i += 1
-        print(self.defines)
+    
+        self.show_parameters()
+       
+
+    def save_file(self):
+        """save the new file back after parsing and replacing"""
+
+        
         ## save the new parameters values
         i = 0
         for name in self.parameters.keys():
@@ -273,6 +334,7 @@ class Root(ThemedTk):
                         new_code = s + new_code
         
         ## modify parameters
+
         self.parameter_declaration.setParseAction(self.replace_param)
         new_code = self.parameter_declaration.transformString(new_code)
         
