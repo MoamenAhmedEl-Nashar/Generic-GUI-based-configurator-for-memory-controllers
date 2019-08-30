@@ -195,16 +195,17 @@ class Root(ThemedTk):
         ## Knowing defines is defined or not
         define_tokens = self.define.scanString(self.source_code)
         for t, s, e in define_tokens:
-            self.defines[t.def_name] = 1
+            self.defines[t.def_name[0]] = 1
+        
         ## given a list of defines, build the frame_right defines
         r = 0
         for name, value in self.defines.items():
             define_label = ttk.Label(
                 self.frame_right.interior, text=name, font=("Courier", 20))
-            define_entry = ttk.Entry(
-                self.frame_right.interior, font=("Helvetica ", 15))
-            define_entry.insert(END, value)
-            self.define_entries.append(define_entry)
+            def_val = IntVar()
+            define_entry = ttk.Checkbutton(self.frame_right.interior, variable=def_val, onvalue=1, offvalue=0)
+            def_val.set(value)
+            self.define_entries.append(def_val)
             define_label.grid(row=r, column=0, padx=5, pady=5)
             define_entry.grid(row=r, column=1, padx=5, pady=5)
             r += 1
@@ -243,12 +244,12 @@ class Root(ThemedTk):
         ifdef_non_rec.ignore(" ")
         specific_token = ifdef_non_rec.scanString(self.source_code)
         for t, s, e in specific_token:
-            if self.defines[t.def_name] == "1":  # defined
+            if self.defines[t.def_name] == 1:  # defined
                 temp_parse = Keyword("`ifdef") + Keyword(t.def_name)
                 temp_parse2 = PrecededBy(t.ifstmt.strip()) + Keyword("`endif")
                 temp_parse3 = Keyword("`else") + \
                     Keyword(t.elsestmt) + Keyword("`endif")
-            elif self.defines[t.def_name] == "0":  # not defined
+            elif self.defines[t.def_name] == 0:  # not defined
                 temp_parse = Keyword("`ifdef") + \
                     Keyword(t.def_name) + Keyword(t.ifstmt)
                 temp_parse2 = PrecededBy(t.elsestmt.strip()) + Keyword("`endif")
@@ -357,12 +358,12 @@ class Root(ThemedTk):
                 # check the generator is empty or not
                 next(define_specific_token)
                 # defined
-                if value == '0':  # must be not defined
+                if value == 0:  # must be not defined
                     define_specific.setParseAction(self.undefine_it)
                     new_code = define_specific.transformString(new_code)
             except:
                 # not defined
-                if value == '1':  # must be defined
+                if value == 1:  # must be defined
                     # if the verilog file has at least one define statement
                     # - put the new define statement after it
                     dummy_define = Keyword("`define") + self.identifier
