@@ -7,16 +7,16 @@ controls code within them.
 from tkinter import *  # the GUI is based on Tkinter
 from tkinter import filedialog  # filedialog is to allow uploading any file
 import tkinter.ttk as ttk  # ttk to make new styles to old tkiter
-from ttkthemes import ThemedTk  # themes
 from scrframe import *  # scroll frame class
-from pathlib import Path
+from PIL import Image, ImageTk
+from pathlib import Path # to handle pathes easily and efficiently
 from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, \
     Regex, ZeroOrMore, Literal, replaceWith, originalTextFor, Combine, \
     Optional, Group, delimitedList, Keyword, Forward, SkipTo, PrecededBy
 # import pyparsing to parse verilog grammar
 
 
-class Root(ThemedTk):
+class Root(Tk):
     """The main class of the program frontend and backend"""
     # class attributes (same for all instances of a class)
 
@@ -72,6 +72,7 @@ class Root(ThemedTk):
     define.ignore(" ")
 
     ## `include
+    # included files must be of .v extension
     include = Keyword("`include") + '"' + identifier("include_file") + '.v"'
     include.ignore(cStyleComment)
     include.ignore(Regex(r"//.*\n"))
@@ -79,7 +80,7 @@ class Root(ThemedTk):
     # instance attributes (different for every instance of a class.)
 
     def __init__(self, *args, **kwargs):
-        ThemedTk.__init__(self, *args, **kwargs, theme="arc")
+        Tk.__init__(self, *args, **kwargs)
         self.parameters = {}
         self.included_parameters = {}
         self.defines = {}
@@ -98,6 +99,7 @@ class Root(ThemedTk):
                              relief="raised", font=("Helvetica ", 15))
         self.style.configure("TRadiobutton", padding=9,
                              relief="raised", font=("Helvetica ", 15))
+        self.style.configure("TLabelframe", background="aquamarine")
         self.title('Generic GUI-based configurator')
         w, h = self.winfo_screenwidth(), self.winfo_screenheight()
         self.geometry("%dx%d+0+0" % (w, h))
@@ -105,22 +107,26 @@ class Root(ThemedTk):
 
         self.frame_left = VerticalScrolledFrame(self, borderwidth=4)
         self.frame_right = VerticalScrolledFrame(self, borderwidth=4)
-        self.frame_bottom = ttk.LabelFrame(self, borderwidth=4)
-        self.frame_mid = ttk.LabelFrame(self, borderwidth=4)
+        self.frame_bottom = ttk.Frame(self, borderwidth=4)
+        self.frame_mid = ttk.Frame(self, borderwidth=4)
         self.frame_top = ttk.LabelFrame(self, borderwidth=4)
 
         # labels
+        label_style = ttk.Style()
+        label_style.configure("new.TLabel", background="aquamarine")
         self.defines_label = ttk.Label(
-            self.frame_top, text="defines section", font=(10))
+            self.frame_top, text="Defines Section", font=("Helvetica", "20", "bold"), style="new.TLabel")
         self.parameters_label = ttk.Label(
-            self.frame_top, text="parameters section", font=(10))
+            self.frame_top, text="Parameters Section", font=("Helvetica", "20", "bold"), style="new.TLabel")
         # main buttons
         self.upload_button = ttk.Button(
             self.frame_bottom, text="upload", command=lambda: self.read_file())
         self.save_button = ttk.Button(
             self.frame_bottom, text="save", command=lambda: self.save_file())
+        self.image = Image.open("arrow.png").resize((30, 30))
+        self.photo = ImageTk.PhotoImage(self.image)
         self.update_defines_button = ttk.Button(
-            self.frame_mid, text="update ->", command=lambda: self.save_defines())
+            self.frame_mid, image=self.photo, command=lambda: self.save_defines())
 
         # radio buttons (desgin or test file)
         self.select_design_or_test = IntVar()
@@ -135,8 +141,12 @@ class Root(ThemedTk):
         # grid
         # to make widgets propagate (fit) its parent
         self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self.columnconfigure(2, weight=1)
         # to make widgets propagate (fit) its parent
         self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=1)
         # to make widgets propagate (fit) in its parent
         self.frame_top.columnconfigure(0, weight=1)
         # to make widgets propagate (fit) in its parent
@@ -157,14 +167,18 @@ class Root(ThemedTk):
         # to make widgets propagate (fit) in its parent
         self.frame_bottom.rowconfigure(0, weight=1)
         self.frame_bottom.grid(row=2, column=0, columnspan=3, padx=5, pady=5, sticky="nsew")
-        self.frame_mid.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
+        # to make widgets propagate (fit) in its parent
+        self.frame_mid.columnconfigure(0, weight=1)
+        # to make widgets propagate (fit) in its parent
+        self.frame_mid.rowconfigure(0, weight=1)
+        self.frame_mid.grid(row=1, column=1, padx=5, pady=5)
         
         
 
         # frame_top
         self.parameters_label.grid(
-            row=0, column=1, padx=5, pady=5, sticky="e")
-        self.defines_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+            row=0, column=1, padx=10, pady=10, sticky="e")
+        self.defines_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
         #frame_mid
         self.update_defines_button.grid(
@@ -219,6 +233,9 @@ class Root(ThemedTk):
         for child in self.frame_right.interior.winfo_children():
             child.destroy()
         self.frame_right.interior.grid_forget()
+        self.withdraw()
+        self.wm_deiconify()
+        self.state('zoomed')
         self.file_path = filedialog.askopenfilename()
 
         self.file_path = self.file_path
@@ -250,8 +267,8 @@ class Root(ThemedTk):
             r += 1
         if r == 0:  # no defines
             define_label = ttk.Label(
-                self.frame_right.interior, text="No defines found, Click update to see parameters", font=("Courier", 20))
-            define_label.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+                self.frame_right.interior, text="No defines found,\n Click on the arrow to see parameters", font=("Courier", "15"))
+            define_label.grid(row=0, column=0, padx=5, pady=5)
 
     def show_parameters(self):
         """search input code to get parameters"""
@@ -334,9 +351,9 @@ class Root(ThemedTk):
         if self.select_design_or_test.get() == 1:  # design file
             for name, value in self.parameters.items():
                 param_label = ttk.Label(
-                    self.frame_left.interior, text=name, font=("Courier", 20))
+                    self.frame_left.interior, text=name, font=("Courier", "20"))
                 param_entry = ttk.Entry(
-                    self.frame_left.interior, font=("Helvetica ", 15))
+                    self.frame_left.interior, font=("Helvetica ", "15"))
                 param_entry.insert(END, value)
                 self.param_entries.append(param_entry)
                 param_label.grid(row=r, column=0, padx=5, pady=5)
@@ -350,9 +367,9 @@ class Root(ThemedTk):
                 elif name in self.included_parameters.keys():
                     value = self.included_parameters[name]
                 param_label = ttk.Label(
-                    self.frame_left.interior, text=name, font=("Courier", 20))
+                    self.frame_left.interior, text=name, font=("Courier", "20"))
                 param_entry = ttk.Entry(
-                    self.frame_left.interior, font=("Helvetica ", 15))
+                    self.frame_left.interior, font=("Helvetica ", "15"))
                 param_entry.insert(END, value)
                 self.param_entries.append(param_entry)
                 param_label.grid(row=r, column=0, padx=5, pady=5)

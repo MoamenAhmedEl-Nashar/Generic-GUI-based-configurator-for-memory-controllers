@@ -12,7 +12,7 @@ class VerticalScrolledFrame(Frame):
 
         # create a canvas object and a vertical scrollbar for scrolling it
         vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
-        canvas = Canvas(self, yscrollcommand=vscrollbar.set, height=400, width=400)
+        canvas = Canvas(self, yscrollcommand=vscrollbar.set)
         canvas.configure(scrollregion=canvas.bbox("all"))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -26,7 +26,7 @@ class VerticalScrolledFrame(Frame):
 
         # create a frame inside the canvas which will be scrolled with it
 
-        self.interior = ttk.Frame(canvas, width=700)
+        self.interior = ttk.Frame(canvas)
         interior_id = canvas.create_window(0, 0, window=self.interior,
                                            anchor=NW)
 
