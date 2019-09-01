@@ -12,7 +12,7 @@ class VerticalScrolledFrame(Frame):
 
         # create a canvas object and a vertical scrollbar for scrolling it
         vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
-        canvas = Canvas(self, yscrollcommand=vscrollbar.set, height=400)
+        canvas = Canvas(self, yscrollcommand=vscrollbar.set, height=400, width=400)
         canvas.configure(scrollregion=canvas.bbox("all"))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -26,8 +26,8 @@ class VerticalScrolledFrame(Frame):
 
         # create a frame inside the canvas which will be scrolled with it
 
-        self.interior = interior = ttk.Frame(canvas)
-        interior_id = canvas.create_window(0, 0, window=interior,
+        self.interior = ttk.Frame(canvas, width=700)
+        interior_id = canvas.create_window(0, 0, window=self.interior,
                                            anchor=NW)
 
 
@@ -36,28 +36,28 @@ class VerticalScrolledFrame(Frame):
         # also updating the scrollbar
         def _configure_interior(event):
             # update the scrollbars to match the size of the inner frame
-            size = (interior.winfo_reqwidth(), interior.winfo_reqheight())
+            size = (self.interior.winfo_reqwidth(), self.interior.winfo_reqheight())
             canvas.config(scrollregion="0 0 %s %s" % size)
-            if interior.winfo_reqwidth() != canvas.winfo_width():
+            if self.interior.winfo_reqwidth() != canvas.winfo_width():
                 # update the canvas's width to fit the inner frame
-                canvas.config(width=interior.winfo_reqwidth())
-        interior.bind('<Configure>', _configure_interior)
+                canvas.config(width=self.interior.winfo_reqwidth())
+        self.interior.bind('<Configure>', _configure_interior)
 
         def _bound_to_mousewheel(event):
-            interior.bind_all("<MouseWheel>", _on_mousewheel)   
+            self.interior.bind_all("<MouseWheel>", _on_mousewheel)   
         
         def _unbound_to_mousewheel( event):
-            interior.unbind_all("<MouseWheel>") 
+            self.interior.unbind_all("<MouseWheel>") 
 
         def _on_mousewheel(event):
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 
-        interior.bind('<Enter>', _bound_to_mousewheel)
-        interior.bind('<Leave>', _unbound_to_mousewheel)
-        interior.bind('<MouseWheel>', _on_mousewheel)
+        self.interior.bind('<Enter>', _bound_to_mousewheel)
+        self.interior.bind('<Leave>', _unbound_to_mousewheel)
+        self.interior.bind('<MouseWheel>', _on_mousewheel)
 
         def _configure_canvas(event):
-            if interior.winfo_reqwidth() != canvas.winfo_width():
+            if self.interior.winfo_reqwidth() != canvas.winfo_width():
                 # update the inner frame's width to fill the canvas
                 canvas.itemconfigure(interior_id, width=canvas.winfo_width())
         canvas.bind('<Configure>', _configure_canvas)

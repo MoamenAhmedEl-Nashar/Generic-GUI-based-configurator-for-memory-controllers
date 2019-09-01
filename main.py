@@ -9,6 +9,7 @@ from tkinter import filedialog  # filedialog is to allow uploading any file
 import tkinter.ttk as ttk  # ttk to make new styles to old tkiter
 from ttkthemes import ThemedTk  # themes
 from scrframe import *  # scroll frame class
+from pathlib import Path
 from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, \
     Regex, ZeroOrMore, Literal, replaceWith, originalTextFor, Combine, \
     Optional, Group, delimitedList, Keyword, Forward, SkipTo, PrecededBy
@@ -69,16 +70,24 @@ class Root(ThemedTk):
     define.ignore(cStyleComment)
     define.ignore(Regex(r"//.*\n"))
     define.ignore(" ")
+
+    ## `include
+    include = Keyword("`include") + '"' + identifier("include_file") + '.v"'
+    include.ignore(cStyleComment)
+    include.ignore(Regex(r"//.*\n"))
+    include.ignore(" ")
     # instance attributes (different for every instance of a class.)
 
     def __init__(self, *args, **kwargs):
         ThemedTk.__init__(self, *args, **kwargs, theme="arc")
         self.parameters = {}
+        self.included_parameters = {}
         self.defines = {}
         self.param_entries = []
         self.define_entries = []
         self.edit_param = []
         self.file_path = ""
+        self.include_file_path = ""
         self.module_parameter_names = []
 
         self.style = ttk.Style()
@@ -92,12 +101,13 @@ class Root(ThemedTk):
         self.title('Generic GUI-based configurator')
         w, h = self.winfo_screenwidth(), self.winfo_screenheight()
         self.geometry("%dx%d+0+0" % (w, h))
+        self.state('zoomed')
 
         self.frame_left = VerticalScrolledFrame(self, borderwidth=4)
         self.frame_right = VerticalScrolledFrame(self, borderwidth=4)
-        self.frame_bottom = ttk.Frame(self, borderwidth=4)
-        self.frame_mid = ttk.Frame(self, borderwidth=4)
-        self.frame_top = ttk.Frame(self, borderwidth=4)
+        self.frame_bottom = ttk.LabelFrame(self, borderwidth=4)
+        self.frame_mid = ttk.LabelFrame(self, borderwidth=4)
+        self.frame_top = ttk.LabelFrame(self, borderwidth=4)
 
         # labels
         self.defines_label = ttk.Label(
@@ -128,23 +138,33 @@ class Root(ThemedTk):
         # to make widgets propagate (fit) its parent
         self.rowconfigure(0, weight=1)
         # to make widgets propagate (fit) in its parent
-        self.frame_left.interior.columnconfigure(0, weight=1)
+        self.frame_top.columnconfigure(0, weight=1)
         # to make widgets propagate (fit) in its parent
-        self.frame_left.interior.rowconfigure(0, weight=1)
-        self.frame_left.grid(row=1, column=2, sticky="nsew")
+        self.frame_top.rowconfigure(0, weight=1)
+        self.frame_top.grid(row=0, column=0, columnspan=3, padx=5, pady=5, sticky="nsew")
         # to make widgets propagate (fit) in its parent
         self.frame_right.interior.columnconfigure(0, weight=1)
         # to make widgets propagate (fit) in its parent
         self.frame_right.interior.rowconfigure(0, weight=1)
-        self.frame_right.grid(row=1, column=0, sticky="nsew")
-        self.frame_bottom.grid(row=2, column=0, padx=5, pady=5)
-        self.frame_mid.grid(row=1, column=1, padx=5, pady=5)
-        self.frame_top.grid(row=0, column=0, padx=5, pady=5)
+        self.frame_right.grid(row=1, column=0, sticky="w")
+        # to make widgets propagate (fit) in its parent
+        self.frame_left.interior.columnconfigure(0, weight=1)
+        # to make widgets propagate (fit) in its parent
+        self.frame_left.interior.rowconfigure(0, weight=1)
+        self.frame_left.grid(row=1, column=2, sticky="e")
+        # to make widgets propagate (fit) in its parent
+        self.frame_bottom.columnconfigure(0, weight=1)
+        # to make widgets propagate (fit) in its parent
+        self.frame_bottom.rowconfigure(0, weight=1)
+        self.frame_bottom.grid(row=2, column=0, columnspan=3, padx=5, pady=5, sticky="nsew")
+        self.frame_mid.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
+        
+        
 
         # frame_top
         self.parameters_label.grid(
-            row=0, column=1, sticky="nsew", padx=5, pady=5)
-        self.defines_label.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+            row=0, column=1, padx=5, pady=5, sticky="e")
+        self.defines_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
         #frame_mid
         self.update_defines_button.grid(
@@ -161,6 +181,25 @@ class Root(ThemedTk):
 
     # methods
 
+    def parse_include(self):
+        # get include file name from the main file
+        include_token = self.include.scanString(self.source_code, maxMatches=1)
+        for t, s, e in include_token:
+            self.include_file_path = t.include_file
+        # open included file 
+        if self.include_file_path != "":
+            self.include_file_path = Path(self.file_path).parents[0] / (self.include_file_path + '.v')
+            with open(self.include_file_path, "r") as input_file:
+                self.include_code = input_file.read()
+            # parse included file itself to get parameters
+            token = self.parameter_declaration.scanString(self.include_code)
+            for t, s, e in token:
+                l_name = t.name.asList()
+                l_value = t.value.asList()
+                for name, value in zip(l_name, l_value):
+                    self.included_parameters[name] = value
+
+        
     def read_file(self):
         """read the input file and parse its contents,
            called on clicking upload button."""
@@ -212,7 +251,7 @@ class Root(ThemedTk):
         if r == 0:  # no defines
             define_label = ttk.Label(
                 self.frame_right.interior, text="No defines found, Click update to see parameters", font=("Courier", 20))
-            define_label.grid(row=0, column=0, padx=5, pady=5)
+            define_label.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
     def show_parameters(self):
         """search input code to get parameters"""
@@ -236,7 +275,12 @@ class Root(ThemedTk):
         self.moduleInstantiation.ignore(cStyleComment)
         self.moduleInstantiation.ignore(Regex(r"//.*\n"))
         self.moduleInstantiation.ignore(" ")
-        ## modifying parameter_declaration according to defines
+        self.include = Keyword("`include") + '"' + self.identifier("include_file") + '.v"'
+        self.include.ignore(cStyleComment)
+        self.include.ignore(Regex(r"//.*\n"))
+        self.include.ignore(" ")
+
+        ## modifying parsers according to defines
         ifdef_non_rec = Keyword("`ifdef") + self.identifier("def_name") + self.stmt("ifstmt") + Optional(
             Keyword("`else") + self.stmt("elsestmt")) + Keyword("`endif")
         ifdef_non_rec.ignore(cStyleComment)
@@ -260,6 +304,9 @@ class Root(ThemedTk):
             self.moduleInstantiation.ignore(temp_parse)
             self.moduleInstantiation.ignore(temp_parse2)
             self.moduleInstantiation.ignore(temp_parse3)
+            self.include.ignore(temp_parse)
+            self.include.ignore(temp_parse2)
+            self.include.ignore(temp_parse3)
 
         ## parse input file to get parameters
         token = self.parameter_declaration.scanString(self.source_code)
@@ -284,14 +331,29 @@ class Root(ThemedTk):
 
         ## given a list of parameters, build the frame_left parameters
         r = 1
-        for name, value in self.parameters.items():
-            if name in self.module_parameter_names or self.select_design_or_test.get() == 1:  # design file
+        if self.select_design_or_test.get() == 1:  # design file
+            for name, value in self.parameters.items():
                 param_label = ttk.Label(
                     self.frame_left.interior, text=name, font=("Courier", 20))
                 param_entry = ttk.Entry(
                     self.frame_left.interior, font=("Helvetica ", 15))
                 param_entry.insert(END, value)
-
+                self.param_entries.append(param_entry)
+                param_label.grid(row=r, column=0, padx=5, pady=5)
+                param_entry.grid(row=r, column=1, padx=5, pady=5)
+                r += 1
+        elif self.select_design_or_test.get() == 2:  # test file
+            self.parse_include()
+            for name in self.module_parameter_names:
+                if name in self.parameters.keys():
+                    value = self.parameters[name]
+                elif name in self.included_parameters.keys():
+                    value = self.included_parameters[name]
+                param_label = ttk.Label(
+                    self.frame_left.interior, text=name, font=("Courier", 20))
+                param_entry = ttk.Entry(
+                    self.frame_left.interior, font=("Helvetica ", 15))
+                param_entry.insert(END, value)
                 self.param_entries.append(param_entry)
                 param_label.grid(row=r, column=0, padx=5, pady=5)
                 param_entry.grid(row=r, column=1, padx=5, pady=5)
@@ -302,6 +364,13 @@ class Root(ThemedTk):
 
         for i in range(3, len(toks), 4):
             toks[i] = self.parameters[toks[i-2]]
+        return " ".join(toks)  # to put spaces between tokens
+
+    def replace_param_include(self, s, loks, toks):
+        """replace values of included parameters with the new one"""
+
+        for i in range(3, len(toks), 4):
+            toks[i] = self.included_parameters[toks[i-2]]
         return " ".join(toks)  # to put spaces between tokens
 
     def undefine_it(self, s, loks, toks):
@@ -325,11 +394,22 @@ class Root(ThemedTk):
 
         self.show_parameters()
 
+    
+    def save_included_parameters(self):
+
+        input_file = open(self.include_file_path, "w")
+        ## modify parameters
+        self.parameter_declaration.setParseAction(self.replace_param_include)
+        new_code = self.parameter_declaration.transformString(self.include_code)
+
+        input_file.write(new_code)
+        input_file.close()
+
     def save_file(self):
         """save the new file back after parsing and replacing"""
 
         ## save the new defines values if the user doesn't click update
-        if len(self.parameters) == 0:
+        if len(self.parameters) == 0 and len(self.included_parameters) == 0:
             i = 0
             for name in self.defines.keys():
                 self.defines[name] = self.define_entries[i].get()
@@ -337,10 +417,20 @@ class Root(ThemedTk):
 
         ## save the new parameters values
         i = 0
-        for name in self.parameters.keys():
-            if name in self.module_parameter_names or self.select_design_or_test.get() == 1:  # design file:
-                self.parameters[name] = self.param_entries[i].get()
-                i += 1
+        if self.select_design_or_test.get() == 1:  # design file:
+            for name in self.parameters.keys():
+                    self.parameters[name] = self.param_entries[i].get()
+                    i += 1
+        elif self.select_design_or_test.get() == 2:  # test file:
+            for name in self.module_parameter_names:
+                if name in self.parameters.keys():
+                    self.parameters[name] = self.param_entries[i].get()
+                    i += 1
+                elif name in self.included_parameters.keys():
+                    self.included_parameters[name] = self.param_entries[i].get()
+                    i += 1
+
+
 
         # modify input file
         input_file = open(self.file_path, "w")
@@ -387,7 +477,8 @@ class Root(ThemedTk):
                         new_code = s + new_code
 
         ## modify parameters
-
+        if self.include_file_path != "":
+            self.save_included_parameters()
         self.parameter_declaration.setParseAction(self.replace_param)
         new_code = self.parameter_declaration.transformString(new_code)
 

@@ -6,7 +6,7 @@ test bench for testing random choose module
 */
 module test ;
 /*j*/ 
- parameter WIDTH = 12 , x = 4; /*h*/
+ parameter WIDTH = 10 , x = 4; /*h*/
  /*h*/ 
  parameter WIDTH2 = 2;
  parameter WIDTH3 = 31; // modify if ...

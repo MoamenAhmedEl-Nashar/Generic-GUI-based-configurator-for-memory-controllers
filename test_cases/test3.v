@@ -1,5 +1,9 @@
+
+ `define VPS_FLOW
+
+`include "param.v"
 module test;
-parameter DENSITY_CODE = 5;
+
 parameter any = 1;
   `ifdef VPS_FLOW
    vps_lpddr5_sm
