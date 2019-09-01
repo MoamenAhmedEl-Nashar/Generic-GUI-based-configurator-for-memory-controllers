@@ -118,6 +118,7 @@ class Root(Tk):
             self.frame_top, text="Defines Section", font=("Helvetica", "20", "bold"), style="new.TLabel")
         self.parameters_label = ttk.Label(
             self.frame_top, text="Parameters Section", font=("Helvetica", "20", "bold"), style="new.TLabel")
+        
         # main buttons
         self.upload_button = ttk.Button(
             self.frame_bottom, text="upload", command=lambda: self.read_file())
@@ -145,8 +146,8 @@ class Root(Tk):
         self.columnconfigure(2, weight=1)
         # to make widgets propagate (fit) its parent
         self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
-        self.rowconfigure(2, weight=1)
+        self.rowconfigure(1, weight=2)
+        
         # to make widgets propagate (fit) in its parent
         self.frame_top.columnconfigure(0, weight=1)
         # to make widgets propagate (fit) in its parent
@@ -164,6 +165,7 @@ class Root(Tk):
         self.frame_left.grid(row=1, column=2, sticky="e")
         # to make widgets propagate (fit) in its parent
         self.frame_bottom.columnconfigure(0, weight=1)
+        self.frame_bottom.columnconfigure(1, weight=1)
         # to make widgets propagate (fit) in its parent
         self.frame_bottom.rowconfigure(0, weight=1)
         self.frame_bottom.grid(row=2, column=0, columnspan=3, padx=5, pady=5, sticky="nsew")
@@ -177,7 +179,7 @@ class Root(Tk):
 
         # frame_top
         self.parameters_label.grid(
-            row=0, column=1, padx=10, pady=10, sticky="e")
+            row=0, column=2, padx=10, pady=10, sticky="e")
         self.defines_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
         #frame_mid
@@ -226,6 +228,7 @@ class Root(Tk):
         self.module_parameter_names.clear()
         self.edit_param.clear()
         self.file_path = ""
+        self.include_file_path = ""
         self.parameter_declaration.setParseAction()
         for child in self.frame_left.interior.winfo_children():
             child.destroy()
