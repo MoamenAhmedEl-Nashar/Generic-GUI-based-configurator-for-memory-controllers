@@ -2,7 +2,7 @@ from tkinter import *
 import tkinter.ttk as ttk
 
 
-class VerticalScrolledFrame(Frame):
+class VerticalScrolledFrame(ttk.Frame):
 
     def __init__(self, parent, *args, **kw):
         self.style = ttk.Style()

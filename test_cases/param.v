@@ -1,1 +1,2 @@
-parameter DENSITY_CODE = 2;
+parameter DENSITY_CODE = 1;
+parameter TT = 1;

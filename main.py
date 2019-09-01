@@ -157,12 +157,12 @@ class Root(Tk):
         self.frame_right.interior.columnconfigure(0, weight=1)
         # to make widgets propagate (fit) in its parent
         self.frame_right.interior.rowconfigure(0, weight=1)
-        self.frame_right.grid(row=1, column=0, sticky="w")
+        self.frame_right.grid(row=1, column=0, sticky="nsw")
         # to make widgets propagate (fit) in its parent
         self.frame_left.interior.columnconfigure(0, weight=1)
         # to make widgets propagate (fit) in its parent
         self.frame_left.interior.rowconfigure(0, weight=1)
-        self.frame_left.grid(row=1, column=2, sticky="e")
+        self.frame_left.grid(row=1, column=2, sticky="nse")
         # to make widgets propagate (fit) in its parent
         self.frame_bottom.columnconfigure(0, weight=1)
         self.frame_bottom.columnconfigure(1, weight=1)
@@ -173,7 +173,7 @@ class Root(Tk):
         self.frame_mid.columnconfigure(0, weight=1)
         # to make widgets propagate (fit) in its parent
         self.frame_mid.rowconfigure(0, weight=1)
-        self.frame_mid.grid(row=1, column=1, padx=5, pady=5)
+        self.frame_mid.grid(row=1, column=1, padx=5, pady=5, sticky="ns")
         
         
 
@@ -275,7 +275,7 @@ class Root(Tk):
 
     def show_parameters(self):
         """search input code to get parameters"""
-
+        
         ## resetting
         self.parameters.clear()
         self.param_entries.clear()
@@ -345,9 +345,9 @@ class Root(Tk):
                 self.module_name = t.module_name
 
         if self.select_design_or_test.get() == 2:  # test file
-            param_label = ttk.Label(
-                self.frame_left.interior, text="module: "+self.module_name, font=("Courier", 20))
-            param_label.grid(row=0, column=0, padx=5, pady=5)
+            module_label = ttk.Label(
+                self.frame_left.interior, text=("module: "+self.module_name), font=("Courier", "20", "bold"))
+            module_label.grid(row=0, column=0, padx=5, pady=5)
 
         ## given a list of parameters, build the frame_left parameters
         r = 1
