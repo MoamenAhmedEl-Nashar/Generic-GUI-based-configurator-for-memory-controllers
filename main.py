@@ -89,6 +89,7 @@ class Root(Tk):
         self.edit_param = []
         self.file_path = ""
         self.include_file_path = ""
+        self.include_code = ""
         self.module_parameter_names = []
 
         self.style = ttk.Style()
@@ -254,7 +255,9 @@ class Root(Tk):
         ## Knowing defines is defined or not
         define_tokens = self.define.scanString(self.source_code)
         for t, s, e in define_tokens:
-            self.defines[t.def_name[0]] = 1
+            defined_identifier = t.def_name[0]
+            if defined_identifier in self.defines.keys():
+                self.defines[defined_identifier] = 1
         
         ## given a list of defines, build the frame_right defines
         r = 0
@@ -343,8 +346,6 @@ class Root(Tk):
             for t, s, e in module_token:
                 self.module_parameter_names = t.name.asList()
                 self.module_name = t.module_name
-
-        if self.select_design_or_test.get() == 2:  # test file
             module_label = ttk.Label(
                 self.frame_left.interior, text=("module: "+self.module_name), font=("Courier", "20", "bold"))
             module_label.grid(row=0, column=0, padx=5, pady=5)
@@ -352,16 +353,21 @@ class Root(Tk):
         ## given a list of parameters, build the frame_left parameters
         r = 1
         if self.select_design_or_test.get() == 1:  # design file
-            for name, value in self.parameters.items():
-                param_label = ttk.Label(
-                    self.frame_left.interior, text=name, font=("Courier", "20"))
-                param_entry = ttk.Entry(
-                    self.frame_left.interior, font=("Helvetica ", "15"))
-                param_entry.insert(END, value)
-                self.param_entries.append(param_entry)
-                param_label.grid(row=r, column=0, padx=5, pady=5)
-                param_entry.grid(row=r, column=1, padx=5, pady=5)
-                r += 1
+            if len(self.parameters) == 0:  # There are no parameters
+                message_label = ttk.Label(
+                self.frame_left.interior, text="There are no parameters.", font=("Courier", "20"))
+                message_label.grid(row=0, column=0, padx=5, pady=5)
+            else:
+                for name, value in self.parameters.items():
+                    param_label = ttk.Label(
+                        self.frame_left.interior, text=name, font=("Courier", "20"))
+                    param_entry = ttk.Entry(
+                        self.frame_left.interior, font=("Helvetica ", "15"))
+                    param_entry.insert(END, value)
+                    self.param_entries.append(param_entry)
+                    param_label.grid(row=r, column=0, padx=5, pady=5)
+                    param_entry.grid(row=r, column=1, padx=5, pady=5)
+                    r += 1
         elif self.select_design_or_test.get() == 2:  # test file
             self.parse_include()
             for name in self.module_parameter_names:
@@ -428,8 +434,8 @@ class Root(Tk):
     def save_file(self):
         """save the new file back after parsing and replacing"""
 
-        ## save the new defines values if the user doesn't click update
-        if len(self.parameters) == 0 and len(self.included_parameters) == 0:
+        ## save the new defines values if the user doesn't click update(arrow)
+        if len(self.parameters) == 0 and len(self.included_parameters) == 0: # if there are no parameters
             i = 0
             for name in self.defines.keys():
                 self.defines[name] = self.define_entries[i].get()
@@ -453,6 +459,7 @@ class Root(Tk):
 
 
         # modify input file
+        # an existing file with the same name will be erased
         input_file = open(self.file_path, "w")
         ## modify defines
         new_code = self.source_code
@@ -499,8 +506,10 @@ class Root(Tk):
         ## modify parameters
         if self.include_file_path != "":
             self.save_included_parameters()
-        self.parameter_declaration.setParseAction(self.replace_param)
-        new_code = self.parameter_declaration.transformString(new_code)
+        if len(self.parameters) != 0 or len(self.included_parameters) != 0: 
+            # not executed 0 when user doesn't click (arrow) to show parameters or There are no parameters
+            self.parameter_declaration.setParseAction(self.replace_param)
+            new_code = self.parameter_declaration.transformString(new_code)
 
         input_file.write(new_code)
         input_file.close()
