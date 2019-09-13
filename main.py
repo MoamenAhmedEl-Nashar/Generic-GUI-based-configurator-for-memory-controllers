@@ -197,10 +197,14 @@ class Root(Tk):
             self.frame_bottom, text="upload", command=lambda: self.read_file())
         self.save_button = ttk.Button(
             self.frame_bottom, text="save", command=lambda: self.save_file())
-        self.image = Image.open("arrow.png").resize((30, 30))
-        self.photo = ImageTk.PhotoImage(self.image)
-        self.update_defines_button = ttk.Button(
-            self.frame_mid, image=self.photo, command=lambda: self.save_defines())
+        try:
+            self.image = Image.open("arrow.png").resize((30, 30))
+            self.photo = ImageTk.PhotoImage(self.image)
+            self.update_defines_button = ttk.Button(
+                self.frame_mid, image=self.photo, command=lambda: self.save_defines())
+        except:
+            self.update_defines_button = ttk.Button(
+                self.frame_mid, text="->", command=lambda: self.save_defines())
         self.settings_button = ttk.Button(
             self.frame_bottom, text="settings", command=lambda: self.settings())
         self.run_button = ttk.Button(
