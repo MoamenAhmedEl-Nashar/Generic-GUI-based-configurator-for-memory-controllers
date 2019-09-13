@@ -60,4 +60,20 @@ If you choose test file option, then click upload:
     -	The tool saves the defines values from the user and updates the defines dictionary.
     -	The tool saves the parameters values from the user and updates the parameters dictionary.
     -	The tool opens the input file and modifies it. 
+    
+   ## How to use
+   - open the executable file.
+   - choose type of the file (design or test).
+   - change `defines`.
+   - click on the arrow.
+   - change `parameters`.
+   - click save to apply changes on the same file.
+   - click settings to adjust settings of run simulation.
+   - click compile design file, and choose the design file for the test file.
+   - click run.
+   
+   ## Notes
+   - add Questa executables to system path.
+   - you don't have to compile design files for each run if you compiled it before in the same directory that 
+   `work` folder exists.
 
