@@ -66,6 +66,7 @@ quit
 """
 from tkinter import *  # the GUI is based on Tkinter
 from tkinter import filedialog  # filedialog is to allow uploading any file
+from tkinter import messagebox
 import tkinter.ttk as ttk  # ttk to make new styles to old tkiter
 from scrframe import *  # scroll frame class
 from PIL import Image, ImageTk
@@ -694,17 +695,24 @@ class Root(Tk):
         """
 
         # load settings
-        with open('settings.json', 'r') as json_file:
-            dict = json.load(json_file)
-        bash_path = dict["bash_path"]
-        mode = dict["mode"] # 1: gui, 2: command, 3: batch
+        try:
+            with open('settings.json', 'r') as json_file:
+                dict = json.load(json_file)
+            bash_path = dict["bash_path"]
+            mode = dict["mode"] # 1: gui, 2: command, 3: batch
+        except:
+            messagebox.showinfo("Error", "Please open settings to add your Linux bash path!" )
         
         # design file
         
         test_file_path = self.file_path.replace(os.sep,posixpath.sep)
-        module_token = self.module_definition.scanString(self.source_code) # the old file
-        for t, s, e in module_token:
-            module_name = t.module_name
+        try:
+            module_token = self.module_definition.scanString(self.source_code) # the old file
+            for t, s, e in module_token:
+                module_name = t.module_name
+        except:
+            messagebox.showinfo("Error", "Please upload file to run!" )
+        
         # assuming vsim, vlog are added to the path
         questa_commands = "log -r *" + " \n " + "run 1000" 
         vlog_command = "vlog -work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact -O0 "
