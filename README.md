@@ -1,3 +1,5 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/476507473cc840d2a9913ba67ef21223)](https://www.codacy.com/manual/moamen.ahmed.n1/Generic-GUI-based-configurator-for-memory-controllers?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=MoamenAhmedEl-Nashar/Generic-GUI-based-configurator-for-memory-controllers&amp;utm_campaign=Badge_Grade)
+
 # Generic-GUI-based-configurator-for-memory-controllers
 ## GIF 
 ![gif](https://github.com/MoamenAhmedEl-Nashar/Generic-GUI-based-configurator-for-memory-controllers/blob/master/new_demo_gif.gif)
