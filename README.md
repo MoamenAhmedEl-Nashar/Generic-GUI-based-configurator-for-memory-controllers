@@ -1,4 +1,6 @@
 # Generic-GUI-based-configurator-for-memory-controllers
+## GIF 
+![gif](https://github.com/MoamenAhmedEl-Nashar/Generic-GUI-based-configurator-for-memory-controllers/blob/master/new_demo_gif.gif)
 ## Introduction
 The goal of this GUI program is to make the process of change parameters
 in test benches easily, it parses the verilog input file, then extracts
@@ -14,10 +16,9 @@ If you choose design file option, then click upload:
   - The tool saves all identifiers that comes after \``ifdefs` and puts them in defines dictionary.
   -	The tool searches for \``defines` and modifies the defines dictionary with 1 for all defined identifiers.
   -	The tool shows all \``ifdef` identifiers with check buttons on the window as follows:
-  ![defines example]()
+![defines example](https://github.com/MoamenAhmedEl-Nashar/Generic-GUI-based-configurator-for-memory-controllers/blob/master/defines.png)
   
-  -	If there are nothing to show, the tool says “no defines found” as follows:
-  ![no defines found]()
+  -	If there are nothing to show, the tool says “no defines found” as follows:![no defines found](https://github.com/MoamenAhmedEl-Nashar/Generic-GUI-based-configurator-for-memory-controllers/blob/master/no_defines.png)
   - If you click save:
     -	The tool saves the defines values from the user and updates the defines dictionary
     -	The tool opens the input file and modifies defines only. 
@@ -25,9 +26,9 @@ If you choose design file option, then click upload:
   -	The tool modifies parsers to ignore undefined sections (\``ifdef` “not defined identifier”)
   -	The tool parses the input file to get any parameter declaration
   - The tool shows all parameters on the window as follows:
-  ![parameters example]()
+  ![parameters example](https://github.com/MoamenAhmedEl-Nashar/Generic-GUI-based-configurator-for-memory-controllers/blob/master/parameters.png)
   -	If there are nothing to show, the tool says “There are no parameters” as follows:
-  ![no parameters found]()
+  ![no parameters found](https://github.com/MoamenAhmedEl-Nashar/Generic-GUI-based-configurator-for-memory-controllers/blob/master/no_parameters.png)
   - If you click save:
   - The tool saves the defines values from the user and updates the defines dictionary.
   -	The tool saves the parameters values from the user and updates the parameters dictionary.
@@ -60,7 +61,3 @@ If you choose test file option, then click upload:
     -	The tool saves the parameters values from the user and updates the parameters dictionary.
     -	The tool opens the input file and modifies it. 
 
-
-
-# GIF 
-![](https://github.com/MoamenAhmedEl-Nashar/Generic-GUI-based-configurator-for-memory-controllers/blob/master/demo_gif.gif)
