@@ -1,3 +1,5 @@
+
+ `define USE_WREAL
 `include "params.v"
 
 module dut (

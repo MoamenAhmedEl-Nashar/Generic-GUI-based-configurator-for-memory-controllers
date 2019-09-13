@@ -4,7 +4,7 @@
 /*
 test bench for testing random choose module
 */
-module test ;
+module test_choose ;
 /*j*/ 
  parameter WIDTH = 10 , x = 4; /*h*/
  /*h*/ 

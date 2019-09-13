@@ -51,6 +51,17 @@ o	If there are nothing to show, the tool says “There are no parameters”
     	The tool saves the parameters values from the user and updates the parameters dictionary.
     	The tool opens the input file and modifies it. 
 
+Modelsim/QuestaSim:
+Whenever you want to run ModelSim in a new directory, 
+you must create a 'work' directory. To do this you must type 'vlib work'
+after that compile :
+vlog -work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact -O0 C:/Modeltech_pe_edu_10.4a/examples/bcd.v
+after that write vsim (the module name) in the verilog file in current directory.
+log -r *
+run 100
+quit
+
+
 
 """
 from tkinter import *  # the GUI is based on Tkinter
@@ -58,7 +69,11 @@ from tkinter import filedialog  # filedialog is to allow uploading any file
 import tkinter.ttk as ttk  # ttk to make new styles to old tkiter
 from scrframe import *  # scroll frame class
 from PIL import Image, ImageTk
+import json
+import os
+import posixpath
 from pathlib import Path # to handle pathes easily and efficiently
+import subprocess
 from pyparsing import Word, alphas, nums, cStyleComment, pyparsing_common, \
     Regex, ZeroOrMore, Literal, replaceWith, originalTextFor, Combine, \
     Optional, Group, delimitedList, Keyword, Forward, SkipTo, PrecededBy
@@ -126,6 +141,13 @@ class Root(Tk):
     include.ignore(cStyleComment)
     include.ignore(Regex(r"//.*\n"))
     include.ignore(" ")
+
+    ## module 
+    module_definition = Keyword("module") + identifier("module_name")
+    module_definition.ignore(cStyleComment)
+    module_definition.ignore(Regex(r"//.*\n"))
+    module_definition.ignore(" ")
+
     # instance attributes (different for every instance of a class.)
 
     def __init__(self, *args, **kwargs):
@@ -178,6 +200,12 @@ class Root(Tk):
         self.photo = ImageTk.PhotoImage(self.image)
         self.update_defines_button = ttk.Button(
             self.frame_mid, image=self.photo, command=lambda: self.save_defines())
+        self.settings_button = ttk.Button(
+            self.frame_bottom, text="settings", command=lambda: self.settings())
+        self.run_button = ttk.Button(
+            self.frame_bottom, text="run", command=lambda: self.run())
+        self.compile_button = ttk.Button(
+            self.frame_bottom, text="compile design file", command=lambda: self.compile_design())
 
         # radio buttons (desgin or test file)
         self.select_design_or_test = IntVar()
@@ -239,6 +267,9 @@ class Root(Tk):
         # frame bottom
         self.upload_button.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.save_button.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+        self.run_button.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
+        self.settings_button.grid(row=0, column=4, sticky="nsew", padx=5, pady=5)
+        self.compile_button.grid(row=0, column=3, sticky="nsew", padx=5, pady=5)
 
         # radio buttons
         self.info_label.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
@@ -563,6 +594,146 @@ class Root(Tk):
         input_file.write(new_code)
         input_file.close()
 
+
+    def settings(self):
+        """ """
+        # load settings
+        try:
+            with open('settings.json', 'r') as json_file:
+                dict = json.load(json_file)
+            bash_path = dict["bash_path"]
+            mode = dict["mode"] # 1: gui, 2: command, 3: batch
+        except:        
+            dict = {}
+            bash_path = ""
+            mode = 1
+        settings_window = Toplevel(self, bd=5)
+        settings_window.title("Configurations")
+        # labels and entries
+        # bash path
+        bash_path_label = ttk.Label(settings_window, text="Bash path: ", font=("Helvetica", "20", "bold"))
+        bash_path_entry = ttk.Entry(settings_window, font=("Helvetica ", "15"))
+        bash_path_entry.insert(END, bash_path)
+        bash_path_upload = ttk.Button(settings_window, text="upload", command=lambda: 
+            bash_path_entry.insert(END, filedialog.askopenfilename()))
+        # choose -gui , -c, or -batch
+        select_mode = IntVar()
+        select_mode.set(mode)  
+        gui_radio = ttk.Radiobutton(
+            settings_window, text="GUI mode", variable=select_mode, value=1)
+        command_radio = ttk.Radiobutton(
+            settings_window, text="Command mode", variable=select_mode, value=2)
+        batch_radio = ttk.Radiobutton(
+            settings_window, text="Batch mode", variable=select_mode, value=3)
+        # label notes
+        notes = "Notes:\n Please add Questa executables to system path."
+        notes_label = ttk.Label(settings_window, text=notes, font=("Helvetica", "13", "bold"))
+        # save
+        save_settings_button = ttk.Button(settings_window, text="Apply", command=lambda: 
+            self.save_settings(dict, bash_path_entry, select_mode))
+        # grid
+        #notes_label.grid(row=4, column=0)
+        bash_path_label.grid(row=1, column=0, sticky="nswe")
+        bash_path_entry.grid(row=1, column=1, sticky="nswe")
+        bash_path_upload.grid(row=1, column=2, sticky="nswe")
+        gui_radio.grid(row=2, column=0, sticky="nswe")
+        command_radio.grid(row=2, column=1, sticky="nswe")
+        batch_radio.grid(row=2, column=2, sticky="nswe")
+        save_settings_button.grid(row=3, column=0, sticky="nswe")
+
+        
+        
+    def save_settings(self, dict, bash_path_entry, select_mode):
+        """ """
+        # filling dict
+        dict["bash_path"] = bash_path_entry.get()
+        dict["mode"] = select_mode.get()
+        # save dict in json file
+        with open('settings.json', 'w') as json_file:
+            json.dump(dict, json_file)
+
+    def compile_design(self):
+        """ """
+        # load settings
+        with open('settings.json', 'r') as json_file:
+            dict = json.load(json_file)
+        bash_path = dict["bash_path"]
+        design_file_path = filedialog.askopenfilename()
+        vlog_command = "vlog -work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact -O0 "
+        compile_design_command = "vlib work" + " ; " + vlog_command + ' "' + design_file_path + '" ' + " ; " + "bash"
+        p = subprocess.Popen([bash_path, "-c", compile_design_command])
+
+
+    def run(self):
+        """ run Questa via Linux bash terminal commands. The user must add questa to path.
+        Scenarios:
+        ** work library **
+        - if work path is given:
+            - change directory to it
+            - don't run "vlib work"
+        - if work path is not given:
+            - in the cureent directory, run "vlib work"
+        ** compile design files **
+            - ask user to give paths for them and run "vlog"
+        ** compile test file **
+        - compile the test file (self.file_path)
+        ** vsim **
+        - ask the user to choose simulation type:
+            - gui:
+                - run "vsim -gui top"
+            - interactive command line:
+                - run "vsim -c top"
+            - batch:
+                - ask the user for run time amount
+                - make do file with run and quit commands
+                - ask user to save output to file or stdout:
+                - stdout:
+                    - run "vsim -batch top <dofile.do
+                - file
+                    - run "vsim -batch top <dofile.do >outfile
+        """
+
+        # load settings
+        with open('settings.json', 'r') as json_file:
+            dict = json.load(json_file)
+        bash_path = dict["bash_path"]
+        mode = dict["mode"] # 1: gui, 2: command, 3: batch
+        
+        # design file
+        
+        test_file_path = self.file_path.replace(os.sep,posixpath.sep)
+        module_token = self.module_definition.scanString(self.source_code) # the old file
+        for t, s, e in module_token:
+            module_name = t.module_name
+        # assuming vsim, vlog are added to the path
+        questa_commands = "log -r *" + " \n " + "run 1000" 
+        vlog_command = "vlog -work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact -O0 "
+        
+        # commands for -gui mode
+        gui_commands = vlog_command + test_file_path + \
+            " ; " + "vsim -gui " + module_name
+
+        # commands for -c mode
+        c_commands = vlog_command + test_file_path + \
+            " ; " + "vsim -c " + module_name
+        
+        # do file for batch mode
+        commands = vlog_command + test_file_path + \
+            " \n " + questa_commands
+        with open('batch.do', 'w') as do_file:
+            do_file.write(commands)
+        batch_commands = "vsim -batch " + module_name + "<" + "batch.do" + " ; " + "bash"
+
+        if mode == 1: # gui:
+            p = subprocess.Popen([bash_path, "-c", gui_commands])
+        elif mode == 2: # command
+            p = subprocess.Popen([bash_path, "-c", c_commands])
+        else: # batch
+            p = subprocess.Popen([bash_path, "-c", batch_commands])
+        
+        # to force pause process: bash, sleep 1d, or read -p "Press enter to continue"
+
+        
 
 root = Root()
 root.mainloop()

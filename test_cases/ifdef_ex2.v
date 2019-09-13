@@ -1,20 +1,23 @@
 
  `define ITEM2
-`timescale 1ns/10ps
 
+ 
+
+`timescale 1ns/10ps
+ parameter d = 2;
 
 `ifdef ITEM1
-`include "tb1.v"
+`include "param.v"
 `endif
 
 `ifdef ITEM2
-`include "tb2.v"
+`include "param.v"
 `endif
 
 `ifdef ITEM3
-`include "tb3.v"
+`include "param.v"
 `endif
 
 `ifdef ITEM4
-`include "tb4.v"
+`include "param.v"
 `endif
