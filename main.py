@@ -740,11 +740,10 @@ class Root(Tk):
             " ; " + "vsim -c " + module_name
         
         # do file for batch mode
-        commands = vlog_command + test_file_path + \
-            " \n " + questa_commands
         with open('batch.do', 'w') as do_file:
-            do_file.write(commands)
-        batch_commands = "vsim -batch " + module_name + "<" + "batch.do" + " ; " + "bash"
+            do_file.write(questa_commands)
+        batch_commands = vlog_command + test_file_path + " ; " + \
+            "vsim -batch " + module_name + "<" + "batch.do" + " ; " + "bash"
 
         if mode == 1: # gui:
             p = subprocess.Popen([bash_path, "-c", gui_commands])
