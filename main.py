@@ -623,6 +623,7 @@ class Root(Tk):
         bash_path_entry.insert(END, bash_path)
         bash_path_upload = ttk.Button(settings_window, text="upload", command=lambda: 
             bash_path_entry.insert(END, filedialog.askopenfilename()))
+        settings_window.focus_force()
         # choose -gui , -c, or -batch
         select_mode = IntVar()
         select_mode.set(mode)  
@@ -665,18 +666,22 @@ class Root(Tk):
         # save dict in json file
         with open('settings.json', 'w') as json_file:
             json.dump(dict, json_file)
+        
 
     def compile_design(self):
         """ """
         # load settings
-        with open('settings.json', 'r') as json_file:
-            dict = json.load(json_file)
-        bash_path = dict["bash_path"]
-        design_file_path = filedialog.askopenfilename()
-        vlog_command = "vlog -work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact -O0 "
-        compile_design_command = "vlib work" + " ; " + vlog_command + ' "' + design_file_path + '" ' + " ; " + "bash"
-        p = subprocess.Popen([bash_path, "-c", compile_design_command])
-
+        try:
+            with open('settings.json', 'r') as json_file:
+                dict = json.load(json_file)
+            bash_path = dict["bash_path"]
+            design_file_path = filedialog.askopenfilename()
+            vlog_command = "vlog -work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact -O0 "
+            compile_design_command = "vlib work" + " ; " + vlog_command + ' "' + design_file_path + '" ' + " ; " + "bash"
+            p = subprocess.Popen([bash_path, "-c", compile_design_command])
+        except:
+            messagebox.showinfo("Error", "Please open settings to add your Linux bash path!" )
+        
 
     def run(self):
         """ run Questa via Linux bash terminal commands. The user must add questa to path.
