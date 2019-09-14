@@ -608,10 +608,12 @@ class Root(Tk):
                 dict = json.load(json_file)
             bash_path = dict["bash_path"]
             mode = dict["mode"] # 1: gui, 2: command, 3: batch
+            run_time = dict["run_time"]
         except:        
             dict = {}
             bash_path = ""
-            mode = 1
+            mode = 3
+            run_time = 1000
         settings_window = Toplevel(self, bd=5)
         settings_window.title("Configurations")
         # labels and entries
@@ -630,12 +632,16 @@ class Root(Tk):
             settings_window, text="Command mode", variable=select_mode, value=2)
         batch_radio = ttk.Radiobutton(
             settings_window, text="Batch mode", variable=select_mode, value=3)
+        # run time field
+        run_time_label = ttk.Label(settings_window, text="run time (batch mode): ", font=("Helvetica", "20", "bold"))
+        run_time_entry = ttk.Entry(settings_window, font=("Helvetica ", "15"))
+        run_time_entry.insert(END, run_time)
         # label notes
         notes = "Notes:\n Please add Questa executables to system path."
         notes_label = ttk.Label(settings_window, text=notes, font=("Helvetica", "13", "bold"))
         # save
         save_settings_button = ttk.Button(settings_window, text="Apply", command=lambda: 
-            self.save_settings(dict, bash_path_entry, select_mode))
+            self.save_settings(dict, bash_path_entry, select_mode, run_time_entry))
         # grid
         #notes_label.grid(row=4, column=0)
         bash_path_label.grid(row=1, column=0, sticky="nswe")
@@ -644,15 +650,18 @@ class Root(Tk):
         gui_radio.grid(row=2, column=0, sticky="nswe")
         command_radio.grid(row=2, column=1, sticky="nswe")
         batch_radio.grid(row=2, column=2, sticky="nswe")
-        save_settings_button.grid(row=3, column=0, sticky="nswe")
+        run_time_label.grid(row=3, column=0, sticky="nswe")
+        run_time_entry.grid(row=3, column=1, sticky="nswe")
+        save_settings_button.grid(row=4, column=0, sticky="nswe")
 
         
         
-    def save_settings(self, dict, bash_path_entry, select_mode):
+    def save_settings(self, dict, bash_path_entry, select_mode, run_time_entry):
         """ """
         # filling dict
         dict["bash_path"] = bash_path_entry.get()
         dict["mode"] = select_mode.get()
+        dict["run_time"] = run_time_entry.get()
         # save dict in json file
         with open('settings.json', 'w') as json_file:
             json.dump(dict, json_file)
@@ -704,6 +713,7 @@ class Root(Tk):
                 dict = json.load(json_file)
             bash_path = dict["bash_path"]
             mode = dict["mode"] # 1: gui, 2: command, 3: batch
+            run_time = dict["run_time"]
         except:
             messagebox.showinfo("Error", "Please open settings to add your Linux bash path!" )
         
@@ -718,7 +728,7 @@ class Root(Tk):
             messagebox.showinfo("Error", "Please upload file to run!" )
         
         # assuming vsim, vlog are added to the path
-        questa_commands = "log -r *" + " \n " + "run 1000" 
+        questa_commands = "log -r *" + " \n " + "run " + run_time
         vlog_command = "vlog -work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact -O0 "
         
         # commands for -gui mode
